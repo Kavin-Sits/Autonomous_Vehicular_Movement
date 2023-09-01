@@ -56,6 +56,10 @@ VisualizationMsg global_viz_msg_;
 AckermannCurvatureDriveMsg drive_msg_;
 // Epsilon value for handling limited numerical precision.
 const float kEpsilon = 1e-5;
+const float MAX_VEL = 1;
+const float MAX_ACC = 3;
+const float MAX_DEC = -3;
+const float CAR_LEN = 0.4;
 } //namespace
 
 namespace navigation {
@@ -74,6 +78,8 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     robot_omega_(0),
     nav_complete_(true),
     nav_goal_loc_(0, 0),
+    prev_velocity(0),
+    remaining_dist(FLAGS_cp1_distance),
     nav_goal_angle_(0) {
   map_.Load(GetMapFileFromName(map_name));
   drive_pub_ = n->advertise<AckermannCurvatureDriveMsg>(
@@ -109,6 +115,7 @@ void Navigation::UpdateOdometry(const Vector2f& loc,
     odom_angle_ = angle;
     return;
   }
+  remaining_dist = remaining_dist - (loc - odom_loc_).norm();
   odom_loc_ = loc;
   odom_angle_ = angle;
 }
@@ -134,7 +141,7 @@ void Navigation::Run() {
   // The latest observed point cloud is accessible via "point_cloud_"
 
   // Eventually, you will have to set the control values to issue drive commands:
-  drive_msg_.curvature = 0.0;
+  drive_msg_.curvature = FLAGS_cp1_curvature;
   drive_msg_.velocity = 1.0;
 
   // Add timestamps to all messages.
@@ -145,6 +152,18 @@ void Navigation::Run() {
   viz_pub_.publish(local_viz_msg_);
   viz_pub_.publish(global_viz_msg_);
   drive_pub_.publish(drive_msg_);
+}
+
+float Navigation::InstantaneousTimeDecision(){
+  if(prev_velocity<MAX_VEL && remaining_dist> pow(MAX_VEL, 2)/(2*MAX_DEC)){
+    return MAX_ACC;
+  }
+  else if(prev_velocity==MAX_VEL && remaining_dist> pow(MAX_VEL, 2)/(2*MAX_DEC)){
+    return 0;
+  }
+  else{
+    return (prev_velocity/remaining_dist) * -1;
+  }
 }
 
 }  // namespace navigation
