@@ -115,7 +115,6 @@ void Navigation::UpdateOdometry(const Vector2f& loc,
     odom_angle_ = angle;
     return;
   }
-  prev_velocity = vel;
   remaining_dist = remaining_dist - (loc - odom_loc_).norm();
   odom_loc_ = loc;
   odom_angle_ = angle;
@@ -143,6 +142,7 @@ void Navigation::Run() {
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = 0;//FLAGS_cp1_curvature;
+  prev_velocity = drive_msg_.velocity;
   drive_msg_.velocity = prev_velocity + Navigation::InstantaneousTimeDecision() * 0.05;
 
   // Add timestamps to all messages.
