@@ -141,7 +141,7 @@ void Navigation::Run() {
   // The latest observed point cloud is accessible via "point_cloud_"
 
   // Eventually, you will have to set the control values to issue drive commands:
-  drive_msg_.curvature = FLAGS_cp1_curvature;
+  drive_msg_.curvature = 0;//FLAGS_cp1_curvature;
   drive_msg_.velocity = Navigation::InstantaneousTimeDecision();
 
   // Add timestamps to all messages.
