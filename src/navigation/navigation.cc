@@ -70,6 +70,8 @@ string GetMapFileFromName(const string& map) {
 }
 
 Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
+    prev_velocity(0),
+    remaining_dist(FLAGS_cp1_distance),
     odom_initialized_(false),
     localization_initialized_(false),
     robot_loc_(0, 0),
@@ -78,8 +80,6 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     robot_omega_(0),
     nav_complete_(true),
     nav_goal_loc_(0, 0),
-    prev_velocity(0),
-    remaining_dist(FLAGS_cp1_distance),
     nav_goal_angle_(0) {
   map_.Load(GetMapFileFromName(map_name));
   drive_pub_ = n->advertise<AckermannCurvatureDriveMsg>(

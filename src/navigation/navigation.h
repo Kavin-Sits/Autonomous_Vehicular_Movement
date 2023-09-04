@@ -68,7 +68,7 @@ class Navigation {
   void SetNavGoal(const Eigen::Vector2f& loc, float angle);
 
   float InstantaneousTimeDecision();
-  
+
   float prev_velocity;
   float remaining_dist;
 
