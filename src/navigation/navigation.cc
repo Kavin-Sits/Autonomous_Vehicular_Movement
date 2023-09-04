@@ -142,7 +142,7 @@ void Navigation::Run() {
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = 0;//FLAGS_cp1_curvature;
-  drive_msg_.velocity = 5;
+  drive_msg_.velocity = 0.1;
   // if(prev_velocity + Navigation::InstantaneousTimeDecision() * 0.05 < 0){
   //   drive_msg_.velocity = 0;
   // }
