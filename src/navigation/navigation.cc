@@ -116,6 +116,8 @@ void Navigation::UpdateOdometry(const Vector2f& loc,
     return;
   }
   remaining_dist = remaining_dist - (loc - odom_loc_).norm();
+  printf("Remaining Distance %f\n", remaining_dist);
+  printf("total traversal %f\n", (loc-odom_start_loc_).norm());
   odom_loc_ = loc;
   odom_angle_ = angle;
 }
@@ -142,14 +144,9 @@ void Navigation::Run() {
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = 0;//FLAGS_cp1_curvature;
-  drive_msg_.velocity = 1;
-  // if(prev_velocity + Navigation::InstantaneousTimeDecision() * 0.05 < 0){
-  //   drive_msg_.velocity = 0;
-  // }
-  // else{
-  //   drive_msg_.velocity = prev_velocity + Navigation::InstantaneousTimeDecision() * 0.05;
-  // }
-  // prev_velocity = drive_msg_.velocity;
+  drive_msg_.velocity = Navigation::InstantaneousTimeDecision();
+  printf("Speed: %f\n", Navigation::InstantaneousTimeDecision());
+  prev_velocity = drive_msg_.velocity;
 
   // Add timestamps to all messages.
   local_viz_msg_.header.stamp = ros::Time::now();
@@ -162,14 +159,25 @@ void Navigation::Run() {
 }
 
 float Navigation::InstantaneousTimeDecision(){
-  if(prev_velocity<MAX_VEL && remaining_dist> pow(MAX_VEL, 2)/(2*MAX_DEC)){
-    return MAX_ACC;
+  float remaining_dist_latency_accomodated = remaining_dist - prev_velocity * 0.05;
+
+  if(prev_velocity<MAX_VEL && remaining_dist_latency_accomodated > -pow(MAX_VEL, 2)/(2*MAX_DEC)){
+    float calc_vel = MAX_ACC * 0.05 + prev_velocity;
+    return calc_vel > MAX_VEL ? MAX_VEL : calc_vel;
   }
-  else if(prev_velocity==MAX_VEL && remaining_dist> pow(MAX_VEL, 2)/(2*MAX_DEC)){
-    return 0;
+  else if(prev_velocity==MAX_VEL && remaining_dist_latency_accomodated > -pow(MAX_VEL, 2)/(2*MAX_DEC)){
+    return prev_velocity;
   }
   else{
-    return (prev_velocity/remaining_dist) * -1;
+    float decel;
+    if(remaining_dist_latency_accomodated<0){
+      decel = MAX_DEC;
+    } else {
+      decel = (-1 * pow(prev_velocity, 2) / (2*remaining_dist_latency_accomodated));
+    }
+    float decel_adj = decel < MAX_DEC ? MAX_DEC : decel;
+    float vel = decel_adj * 0.05 + prev_velocity;
+    return vel < 0 ? 0 : vel;
   }
 }
 
