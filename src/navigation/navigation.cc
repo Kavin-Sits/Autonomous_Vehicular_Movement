@@ -142,13 +142,14 @@ void Navigation::Run() {
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = 0;//FLAGS_cp1_curvature;
-  if(prev_velocity + Navigation::InstantaneousTimeDecision() * 0.05 < 0){
-    drive_msg_.velocity = 0;
-  }
-  else{
-    drive_msg_.velocity = prev_velocity + Navigation::InstantaneousTimeDecision() * 0.05;
-  }
-  prev_velocity = drive_msg_.velocity;
+  drive_msg_.velocity = 5;
+  // if(prev_velocity + Navigation::InstantaneousTimeDecision() * 0.05 < 0){
+  //   drive_msg_.velocity = 0;
+  // }
+  // else{
+  //   drive_msg_.velocity = prev_velocity + Navigation::InstantaneousTimeDecision() * 0.05;
+  // }
+  // prev_velocity = drive_msg_.velocity;
 
   // Add timestamps to all messages.
   local_viz_msg_.header.stamp = ros::Time::now();
