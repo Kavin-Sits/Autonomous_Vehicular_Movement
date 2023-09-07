@@ -182,4 +182,13 @@ float Navigation::InstantaneousTimeDecision(){
   }
 }
 
+float Navigation::GetFreePathLength(Vector2f p, float r) {
+  float x = p[0];
+  float y = p[1];
+  float theta = std::atan2(x, r - y);
+  float omega = atan(H, r - W);
+  float phi = theta - omega;
+  return r * phi;
+}
+
 }  // namespace navigation
