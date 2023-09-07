@@ -72,6 +72,7 @@ string GetMapFileFromName(const string& map) {
 Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     prev_velocity(0),
     remaining_dist(FLAGS_cp1_distance),
+    obstacle_margin(0.1),
     odom_initialized_(false),
     localization_initialized_(false),
     robot_loc_(0, 0),
@@ -163,7 +164,7 @@ float Navigation::InstantaneousTimeDecision(){
 
   if(prev_velocity<MAX_VEL && remaining_dist_latency_accomodated > -pow(MAX_VEL, 2)/(2*MAX_DEC)){
     float calc_vel = MAX_ACC * 0.05 + prev_velocity;
-    return calc_vel > MAX_VEL ? MAX_VEL : calc_vel;
+    return std::min(calc_vel, MAX_VEL);
   }
   else if(prev_velocity==MAX_VEL && remaining_dist_latency_accomodated > -pow(MAX_VEL, 2)/(2*MAX_DEC)){
     return prev_velocity;
@@ -175,9 +176,9 @@ float Navigation::InstantaneousTimeDecision(){
     } else {
       decel = (-1 * pow(prev_velocity, 2) / (2*remaining_dist_latency_accomodated));
     }
-    float decel_adj = decel < MAX_DEC ? MAX_DEC : decel;
+    float decel_adj = std::max(decel,MAX_DEC);
     float vel = decel_adj * 0.05 + prev_velocity;
-    return vel < 0 ? 0 : vel;
+    return std::max(vel, 0.0f);
   }
 }
 
