@@ -69,6 +69,8 @@ class Navigation {
 
   float InstantaneousTimeDecision();
 
+  float GetFreePathLength(Eigen::Vector2f p, float r);
+
   float prev_velocity;
   float remaining_dist;
   float obstacle_margin;

@@ -60,6 +60,8 @@ const float MAX_VEL = 1;
 const float MAX_ACC = 3;
 const float MAX_DEC = -3;
 const float CAR_LEN = 0.4;
+const float H = 0.5;
+const float W = 0.25;
 } //namespace
 
 namespace navigation {
@@ -186,7 +188,7 @@ float Navigation::GetFreePathLength(Vector2f p, float r) {
   float x = p[0];
   float y = p[1];
   float theta = std::atan2(x, r - y);
-  float omega = atan(H, r - W);
+  float omega = std::atan2(H, r - W);
   float phi = theta - omega;
   return r * phi;
 }
