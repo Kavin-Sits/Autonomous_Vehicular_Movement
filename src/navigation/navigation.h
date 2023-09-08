@@ -71,6 +71,8 @@ class Navigation {
 
   float GetFreePathLength(Eigen::Vector2f p, float r);
 
+  bool detectObstacles(Eigen::Vector2f p, Eigen::Vector2f c);
+
   float prev_velocity;
   float remaining_dist;
   float obstacle_margin;

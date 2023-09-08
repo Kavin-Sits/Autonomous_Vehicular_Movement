@@ -193,4 +193,13 @@ float Navigation::GetFreePathLength(Vector2f p, float r) {
   return r * phi;
 }
 
+bool Navigation::detectObstacles(Vector2f p, Vector2f c){
+  float r1 = c[1] - W;
+  float r2 = sqrt(pow((c[1] + W),2) + pow(H,2));
+  if((p - c).norm() >= r1 && (p - c).norm() <= r2){
+    return true;
+  }
+  return false;
+}
+
 }  // namespace navigation
