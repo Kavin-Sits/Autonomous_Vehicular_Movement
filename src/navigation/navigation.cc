@@ -43,7 +43,7 @@ using std::vector;
 using namespace math_util;
 using namespace ros_helpers;
 
-DEFINE_double(cp1_distance, 2.5, "Distance to travel for 1D TOC (cp1)");
+DEFINE_double(cp1_distance, 25, "Distance to travel for 1D TOC (cp1)");
 DEFINE_double(cp1_curvature, 0, "Curvature for arc path (cp1)");
 
 DEFINE_double(cp2_curvature, 0.5, "Curvature for arc path (cp2)");
@@ -142,11 +142,22 @@ void Navigation::Run() {
 
   // The control iteration goes here. 
   // Feel free to make helper functions to structure the control appropriately.
-  
+
   // The latest observed point cloud is accessible via "point_cloud_"
+  printf("starting\n\n");
+  for (int i=0; i<(int)point_cloud_.size(); i++){
+    if (detectObstacles(point_cloud_[i], Vector2f(0, FLAGS_cp2_curvature))){
+      printf("Obstacle at point: (%f, %f)\n", point_cloud_[i][0], point_cloud_[i][1]);
+      visualization::DrawPoint(point_cloud_[i], 0xfcf403, local_viz_msg_);
+    }
+    else{
+      visualization::DrawPoint(point_cloud_[i], 0xdf03fc, local_viz_msg_);
+    }
+  }
+  printf("ending\n\n");
 
   // Eventually, you will have to set the control values to issue drive commands:
-  drive_msg_.curvature = FLAGS_cp1_curvature;
+  drive_msg_.curvature = FLAGS_cp2_curvature;
   drive_msg_.velocity = Navigation::InstantaneousTimeDecision();
   printf("Speed: %f\n", Navigation::InstantaneousTimeDecision());
   prev_velocity = drive_msg_.velocity;
