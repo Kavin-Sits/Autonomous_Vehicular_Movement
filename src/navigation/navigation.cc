@@ -60,7 +60,7 @@ const float MAX_VEL = 1;
 const float MAX_ACC = 3;
 const float MAX_DEC = -3;
 const float CAR_LEN = 0.4;
-const float H = 0.5;
+const float H = 0.75;
 const float W = 0.25;
 } //namespace
 
