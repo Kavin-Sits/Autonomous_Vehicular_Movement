@@ -122,9 +122,9 @@ void Navigation::UpdateOdometry(const Vector2f& loc,
   for (int i=0; i<(int)point_cloud_.size(); i++){
     if (detectObstacles(point_cloud_[i], Vector2f(0, FLAGS_cp2_curvature))){
       float calculatedLength = GetFreePathLength(point_cloud_[i], 1/FLAGS_cp2_curvature);
-      if (calculatedLength>0){
+      // if (calculatedLength>0){
         freePathLength = std::min(calculatedLength, freePathLength);  
-      }
+      // }
     }
   }
   printf("\nFree path length: %f\n", freePathLength);
