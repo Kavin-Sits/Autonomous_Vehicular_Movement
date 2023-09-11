@@ -192,8 +192,8 @@ void Navigation::Run() {
 
 float Navigation::InstantaneousTimeDecision(){
   float remaining_dist_latency_accomodated = remaining_dist - prev_velocity * 0.15;
-
-  if(prev_velocity<MAX_VEL && remaining_dist_latency_accomodated > -pow(MAX_VEL, 2)/(2*MAX_DEC)){
+  float velocity_req = prev_velocity+MAX_ACC*0.05;
+  if(prev_velocity<MAX_VEL && remaining_dist_latency_accomodated > -pow(std::min(MAX_VEL, velocity_req), 2)/(2*MAX_DEC)){
     float calc_vel = MAX_ACC * 0.05 + prev_velocity;
     return std::min(calc_vel, MAX_VEL);
   }
