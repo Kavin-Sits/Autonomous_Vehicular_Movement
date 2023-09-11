@@ -121,7 +121,7 @@ void Navigation::UpdateOdometry(const Vector2f& loc,
   }
   float freePathLength = sensor_range;
   for (int i=0; i<(int)point_cloud_.size(); i++){
-    if (detectObstacles(point_cloud_[i], Vector2f(0, FLAGS_cp2_curvature))){
+    if (detectObstacles(point_cloud_[i], Vector2f(0, 1/FLAGS_cp2_curvature))){
       float calculatedLength = GetFreePathLength(point_cloud_[i], 1/FLAGS_cp2_curvature);
       // if (calculatedLength>0){
         freePathLength = std::min(calculatedLength, freePathLength);  
@@ -218,7 +218,7 @@ float Navigation::GetFreePathLength(Vector2f p, float r) {
   float y = p[1];
   float theta = std::atan2(x, r - y);
   float omega = std::atan2(H, r - W);
-  float phi = theta - omega;
+  float phi = abs(theta - omega);
   return r * phi;
 }
 
@@ -226,6 +226,7 @@ bool Navigation::detectObstacles(Vector2f p, Vector2f c){
   float r1 = c[1] - W;
   float r2 = sqrt(pow((c[1] + W),2) + pow(H,2));
   if((p - c).norm() >= r1 && (p - c).norm() <= r2){
+    // printf("Location of obstacle: (%f, %f)\n", p[0], p[1]);
     return true;
   }
   return false;
