@@ -75,6 +75,7 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     prev_velocity(0),
     remaining_dist(FLAGS_cp1_distance),
     obstacle_margin(0.1),
+    sensor_range(0.0),
     odom_initialized_(false),
     localization_initialized_(false),
     robot_loc_(0, 0),
@@ -118,7 +119,7 @@ void Navigation::UpdateOdometry(const Vector2f& loc,
     odom_angle_ = angle;
     return;
   }
-  float freePathLength = __FLT_MAX__;
+  float freePathLength = sensor_range;
   for (int i=0; i<(int)point_cloud_.size(); i++){
     if (detectObstacles(point_cloud_[i], Vector2f(0, FLAGS_cp2_curvature))){
       float calculatedLength = GetFreePathLength(point_cloud_[i], 1/FLAGS_cp2_curvature);
@@ -158,7 +159,7 @@ void Navigation::Run() {
   // The latest observed point cloud is accessible via "point_cloud_"
   // printf("starting\n\n");
   /* Uncomment section below for visualizations
-  ___________________________________________
+  ___________________________________________*/
   for (int i=0; i<(int)point_cloud_.size(); i++){
     if (detectObstacles(point_cloud_[i], Vector2f(0, FLAGS_cp2_curvature))){
       // printf("Obstacle at point: (%f, %f)\n", point_cloud_[i][0], point_cloud_[i][1]);
@@ -169,6 +170,7 @@ void Navigation::Run() {
     }
   }
   // printf("ending\n\n");
+  /*
   __________________________________________
   */
 

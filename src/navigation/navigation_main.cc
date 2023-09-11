@@ -95,13 +95,16 @@ void LaserCallback(const sensor_msgs::LaserScan& msg) {
   // msg.range_min // Minimum observable range
   // msg.ranges[i] // The range of the i'th ray
   float rays = (msg.angle_max-msg.angle_min) / msg.angle_increment;
+  navigation_->sensor_range = msg.range_max;
   // printf("starting\n\n");
   for (int i=0; i<rays; i++){
-    Vector2f point = Vector2f(msg.ranges[i]*cos(msg.angle_increment*i + msg.angle_min)+kLaserLoc[0], msg.ranges[i]*sin(msg.angle_increment*i + msg.angle_min)+kLaserLoc[1]);
+    if (msg.ranges[i]>msg.range_min && msg.ranges[i]<msg.range_max){
+      Vector2f point = Vector2f(msg.ranges[i]*cos(msg.angle_increment*i + msg.angle_min)+kLaserLoc[0], msg.ranges[i]*sin(msg.angle_increment*i + msg.angle_min)+kLaserLoc[1]);
+      point_cloud_.push_back(point);
+    }
     // Vector2f point2 = Vector2f(msg.ranges[i]*cos(msg.angle_increment*i)+kLaserLoc[0], msg.ranges[i]*sin(msg.angle_increment*i)+kLaserLoc[1]);
     // printf("Point: %f %f\n", point[0], point[1]);
     // printf("Point2: %f %f\n", point2[0], point2[1]);
-    point_cloud_.push_back(point);
   }
   navigation_->ObservePointCloud(point_cloud_, msg.header.stamp.toSec());
   last_laser_msg_ = msg;

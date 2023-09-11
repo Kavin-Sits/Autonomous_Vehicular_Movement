@@ -76,6 +76,7 @@ class Navigation {
   float prev_velocity;
   float remaining_dist;
   float obstacle_margin;
+  float sensor_range;
 
  private:
 
