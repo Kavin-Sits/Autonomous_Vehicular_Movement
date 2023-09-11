@@ -118,9 +118,21 @@ void Navigation::UpdateOdometry(const Vector2f& loc,
     odom_angle_ = angle;
     return;
   }
-  remaining_dist = remaining_dist - (loc - odom_loc_).norm();
-  printf("Remaining Distance %f\n", remaining_dist);
-  printf("total traversal %f\n", (loc-odom_start_loc_).norm());
+  float freePathLength = __FLT_MAX__;
+  for (int i=0; i<(int)point_cloud_.size(); i++){
+    if (detectObstacles(point_cloud_[i], Vector2f(0, FLAGS_cp2_curvature))){
+      float calculatedLength = GetFreePathLength(point_cloud_[i], 1/FLAGS_cp2_curvature);
+      if (calculatedLength>0){
+        freePathLength = std::min(calculatedLength, freePathLength);  
+      }
+    }
+  }
+  printf("\nFree path length: %f\n", freePathLength);
+  remaining_dist = freePathLength;
+  // 1D TOC travel
+  // remaining_dist = remaining_dist - (loc - odom_loc_).norm();
+  // printf("Remaining Distance %f\n", remaining_dist);
+  // printf("total traversal %f\n", (loc-odom_start_loc_).norm());
   odom_loc_ = loc;
   odom_angle_ = angle;
 }
@@ -144,17 +156,21 @@ void Navigation::Run() {
   // Feel free to make helper functions to structure the control appropriately.
 
   // The latest observed point cloud is accessible via "point_cloud_"
-  printf("starting\n\n");
+  // printf("starting\n\n");
+  /* Uncomment section below for visualizations
+  ___________________________________________
   for (int i=0; i<(int)point_cloud_.size(); i++){
     if (detectObstacles(point_cloud_[i], Vector2f(0, FLAGS_cp2_curvature))){
-      printf("Obstacle at point: (%f, %f)\n", point_cloud_[i][0], point_cloud_[i][1]);
+      // printf("Obstacle at point: (%f, %f)\n", point_cloud_[i][0], point_cloud_[i][1]);
       visualization::DrawPoint(point_cloud_[i], 0xfcf403, local_viz_msg_);
     }
     else{
       visualization::DrawPoint(point_cloud_[i], 0xdf03fc, local_viz_msg_);
     }
   }
-  printf("ending\n\n");
+  // printf("ending\n\n");
+  __________________________________________
+  */
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = FLAGS_cp2_curvature;
