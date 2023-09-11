@@ -46,7 +46,7 @@ using namespace ros_helpers;
 DEFINE_double(cp1_distance, 25, "Distance to travel for 1D TOC (cp1)");
 DEFINE_double(cp1_curvature, 0, "Curvature for arc path (cp1)");
 
-DEFINE_double(cp2_curvature, -0.5, "Curvature for arc path (cp2)");
+DEFINE_double(cp2_curvature, 0, "Curvature for arc path (cp2)");
 
 namespace {
 ros::Publisher drive_pub_;
@@ -121,8 +121,8 @@ void Navigation::UpdateOdometry(const Vector2f& loc,
   }
   float freePathLength = sensor_range;
   for (int i=0; i<(int)point_cloud_.size(); i++){
-    if (detectObstacles(point_cloud_[i], Vector2f(0, abs(1/FLAGS_cp2_curvature)))){
-      float calculatedLength = GetFreePathLength(point_cloud_[i], abs(1/FLAGS_cp2_curvature));
+    if (detectObstacles(point_cloud_[i], FLAGS_cp2_curvature)){
+      float calculatedLength = GetFreePathLength(point_cloud_[i], FLAGS_cp2_curvature);
       // if (calculatedLength>0){
         freePathLength = std::min(calculatedLength, freePathLength);  
       // }
@@ -161,7 +161,7 @@ void Navigation::Run() {
   /* Uncomment section below for visualizations
   ___________________________________________*/
   for (int i=0; i<(int)point_cloud_.size(); i++){
-    if (detectObstacles(point_cloud_[i], Vector2f(0, FLAGS_cp2_curvature))){
+    if (detectObstacles(point_cloud_[i], FLAGS_cp2_curvature)){
       // printf("Obstacle at point: (%f, %f)\n", point_cloud_[i][0], point_cloud_[i][1]);
       visualization::DrawPoint(point_cloud_[i], 0xfcf403, local_viz_msg_);
     }
@@ -213,23 +213,31 @@ float Navigation::InstantaneousTimeDecision(){
   }
 }
 
-float Navigation::GetFreePathLength(Vector2f p, float r) {
-  float x = p[0];
-  float y = p[1];
-  float theta = std::atan2(x, r - y);
-  float omega = std::atan2(H, r - W);
-  float phi = abs(theta - omega);
-  return r * phi;
+float Navigation::GetFreePathLength(Vector2f p, float curvature) {
+  if(abs(curvature) <= kEpsilon){
+    return p[0] - H;
+  }
+  else{
+    float r = abs(1/curvature);
+    float x = p[0];
+    float y = p[1];
+    float theta = std::atan2(x, r - y);
+    float omega = std::atan2(H, r - W);
+    float phi = abs(theta - omega);
+    return r * phi;
+  }
 }
 
-bool Navigation::detectObstacles(Vector2f p, Vector2f c){
-  float r1 = c[1] - W;
-  float r2 = sqrt(pow((c[1] + W),2) + pow(H,2));
-  if((p - c).norm() >= r1 && (p - c).norm() <= r2){
-    // printf("Location of obstacle: (%f, %f)\n", p[0], p[1]);
-    return true;
+bool Navigation::detectObstacles(Vector2f p, float curvature){
+  if(abs(curvature) <= kEpsilon){
+    return abs(p[1])<=W && p[0]>0;
   }
-  return false;
+  else{
+    Vector2f c = Vector2f(0, abs(1/curvature));
+    float r1 = c[1] - W;
+    float r2 = sqrt(pow((c[1] + W),2) + pow(H,2));
+    return ((p - c).norm() >= r1 && (p - c).norm() <= r2);
+  }
 }
 
 }  // namespace navigation
