@@ -96,6 +96,7 @@ void LaserCallback(const sensor_msgs::LaserScan& msg) {
   // msg.ranges[i] // The range of the i'th ray
   float rays = (msg.angle_max-msg.angle_min) / msg.angle_increment;
   navigation_->sensor_range = msg.range_max;
+  navigation_->temp_goal_dist = msg.range_max;
   // printf("starting\n\n");
   for (int i=0; i<rays; i++){
     if (msg.ranges[i]>msg.range_min && msg.ranges[i]<msg.range_max){

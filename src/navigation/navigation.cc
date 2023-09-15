@@ -73,9 +73,11 @@ string GetMapFileFromName(const string& map) {
 
 Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     prev_velocity(0),
+    temp_goal_dist(0),
     remaining_dist(FLAGS_cp1_distance),
     obstacle_margin(0.1),
     sensor_range(0.0),
+    produced_curvature(FLAGS_cp2_curvature),
     odom_initialized_(false),
     localization_initialized_(false),
     robot_loc_(0, 0),
@@ -119,17 +121,6 @@ void Navigation::UpdateOdometry(const Vector2f& loc,
     odom_angle_ = angle;
     return;
   }
-  float freePathLength = sensor_range;
-  for (int i=0; i<(int)point_cloud_.size(); i++){
-    if (detectObstacles(point_cloud_[i], FLAGS_cp2_curvature)){
-      float calculatedLength = GetFreePathLength(point_cloud_[i], FLAGS_cp2_curvature);
-      // if (calculatedLength>0){
-        freePathLength = std::min(calculatedLength, freePathLength);  
-      // }
-    }
-  }
-  printf("\nFree path length: %f\n", freePathLength);
-  remaining_dist = freePathLength;
   // 1D TOC travel
   // remaining_dist = remaining_dist - (loc - odom_loc_).norm();
   // printf("Remaining Distance %f\n", remaining_dist);
@@ -152,7 +143,7 @@ void Navigation::Run() {
 
   // If odometry has not been initialized, we can't do anything.
   if (!odom_initialized_) return;
-
+  // float t_start = GetMonotonicTime();
   // The control iteration goes here. 
   // Feel free to make helper functions to structure the control appropriately.
 
@@ -160,24 +151,23 @@ void Navigation::Run() {
   // printf("starting\n\n");
   /* Uncomment section below for visualizations
   ___________________________________________*/
-  for (int i=0; i<(int)point_cloud_.size(); i++){
-    if (detectObstacles(point_cloud_[i], FLAGS_cp2_curvature)){
-      // printf("Obstacle at point: (%f, %f)\n", point_cloud_[i][0], point_cloud_[i][1]);
-      visualization::DrawPoint(point_cloud_[i], 0xfcf403, local_viz_msg_);
-    }
-    else{
-      visualization::DrawPoint(point_cloud_[i], 0xdf03fc, local_viz_msg_);
-    }
-  }
+  
   // printf("ending\n\n");
   /*
   __________________________________________
   */
+  createObstacleArray();
+  produced_curvature = GetOptimalCurvature(0.2);
+  float freePathLength = GetFreePathLength(produced_curvature);
+  printf("\nFree path length: %f\n", freePathLength);
+  remaining_dist = freePathLength;
+  colorize(produced_curvature);
 
   // Eventually, you will have to set the control values to issue drive commands:
-  drive_msg_.curvature = FLAGS_cp2_curvature;
+  drive_msg_.curvature = produced_curvature;
   drive_msg_.velocity = Navigation::InstantaneousTimeDecision();
-  printf("Speed: %f\n", Navigation::InstantaneousTimeDecision());
+  printf("Speed: %f\n", drive_msg_.velocity);
+  printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
 
   // Add timestamps to all messages.
@@ -188,6 +178,8 @@ void Navigation::Run() {
   viz_pub_.publish(local_viz_msg_);
   viz_pub_.publish(global_viz_msg_);
   drive_pub_.publish(drive_msg_);
+  // float t_end = GetMonotonicTime();
+  // printf("Total time for funtion run: %f\n", t_end - t_start);
 }
 
 float Navigation::InstantaneousTimeDecision(){
@@ -213,7 +205,51 @@ float Navigation::InstantaneousTimeDecision(){
   }
 }
 
-float Navigation::GetFreePathLength(Vector2f p, float curvature) {
+float Navigation::ClearanceComputation(float curvature){
+  float minComp = __FLT_MAX__;
+  for (int i=0; i<(int)point_cloud_.size(); i++){
+    if (!detectObstacles(point_cloud_[i], curvature)){
+      minComp = std::min(minComp, ClearanceComputationForPoint(point_cloud_[i], curvature));
+    }
+  }
+  return minComp;
+}
+
+float Navigation::ClearanceComputationForPoint(Vector2f p, float curvature){
+  if(abs(curvature) <= kEpsilon){
+    return abs(p[1]) - W;
+  }
+  else {
+    float radius = 1/curvature;
+    Vector2f c = Vector2f(0, radius);
+    float r2 = sqrt(pow((c[1] + W),2) + pow(H,2));
+    if(abs((c-p).norm())>radius){
+      return abs((c-p).norm()-r2);
+    }
+    else //if(abs((c-p).norm())<radius){
+    {
+      return abs(radius - (c-p).norm());
+    }
+  }
+}
+
+float Navigation::GetClosestPointOfApproach(float curvature){
+  if(abs(curvature)<kEpsilon) return 0;
+
+  float radius = 1/curvature;
+  return sqrt(pow(radius,2) + pow(temp_goal_dist,2)) - radius;
+}
+
+float Navigation::GetFreePathLength(float curvature) {
+  float freePathLength = sensor_range;
+  for (int i=0; i<(int)obstacles.size(); i++){
+      float calculatedLength = GetFreePathLengthForPoint(obstacles[i], curvature);
+      freePathLength = std::min(calculatedLength, freePathLength); 
+  }
+  return freePathLength;
+}
+
+float Navigation::GetFreePathLengthForPoint(Vector2f p, float curvature) {
   if(abs(curvature) <= kEpsilon){
     return p[0] - H;
   }
@@ -228,6 +264,29 @@ float Navigation::GetFreePathLength(Vector2f p, float curvature) {
   }
 }
 
+float Navigation::GetPathScore(float curvature){
+  const float weight_1 = 1;
+  const float weight_2 = 0;
+  const float weight_3 = 0;
+
+  return GetFreePathLength(curvature) * weight_1 + ClearanceComputation(curvature) * weight_2 + GetClosestPointOfApproach(curvature) * weight_3;
+}
+
+float Navigation::GetOptimalCurvature(float angleIncrement){
+  float highestScore = -1 * __FLT_MAX__;
+  float bestCurvature = 0.0;
+  for(float i=-1.0; i<1.0; i+=angleIncrement){
+    float currentScore = GetPathScore(i);
+    if(currentScore>highestScore){
+      highestScore = currentScore;
+      bestCurvature = i;
+    }
+    printf("Free path length: %f and curvature: %f\n", currentScore, i);
+  }
+  printf("Highest score: %f\n", highestScore);
+  return bestCurvature;
+}
+
 bool Navigation::detectObstacles(Vector2f p, float curvature){
   if(abs(curvature) <= kEpsilon){
     return abs(p[1])<=W && p[0]>0;
@@ -238,6 +297,31 @@ bool Navigation::detectObstacles(Vector2f p, float curvature){
     float r2 = sqrt(pow((c[1] + W),2) + pow(H,2));
     return ((p - c).norm() >= r1 && (p - c).norm() <= r2);
   }
+}
+
+void Navigation::createObstacleArray(){
+  vector<Vector2f> obstacle_store;
+  for (int i=0; i<(int)point_cloud_.size(); i++){
+    if (detectObstacles(point_cloud_[i], FLAGS_cp2_curvature)){
+      obstacle_store.push_back(point_cloud_[i]);
+    }
+  }
+  obstacles = obstacle_store;
+}
+
+void Navigation::colorize(float curvature){
+  for (int i=0; i<(int)obstacles.size(); i++){
+    visualization::DrawPoint(obstacles[i], 0xfcf403, local_viz_msg_);
+  }
+  // for (int i=0; i<(int)point_cloud_.size(); i++){
+  //   if (detectObstacles(point_cloud_[i], curvature)){
+  //     // printf("Obstacle at point: (%f, %f)\n", point_cloud_[i][0], point_cloud_[i][1]);
+  //     visualization::DrawPoint(point_cloud_[i], 0xfcf403, local_viz_msg_);
+  //   }
+  //   else{
+  //     visualization::DrawPoint(point_cloud_[i], 0xdf03fc, local_viz_msg_);
+  //   }
+  // }
 }
 
 }  // namespace navigation
