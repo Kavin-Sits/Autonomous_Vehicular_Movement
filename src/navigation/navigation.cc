@@ -46,7 +46,7 @@ using namespace ros_helpers;
 DEFINE_double(cp1_distance, 25, "Distance to travel for 1D TOC (cp1)");
 DEFINE_double(cp1_curvature, 0, "Curvature for arc path (cp1)");
 
-DEFINE_double(cp2_curvature, -0.5, "Curvature for arc path (cp2)");
+DEFINE_double(cp2_curvature, 0.5, "Curvature for arc path (cp2)");
 
 namespace {
 ros::Publisher drive_pub_;
