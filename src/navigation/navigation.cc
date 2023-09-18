@@ -296,7 +296,7 @@ float Navigation::GetClosestPointOfApproach(float curvature){
   if(abs(curvature)<kEpsilon) return 0;
 
   float radius = 1/curvature;
-  return sqrt(pow(radius,2) + pow(1.5,2)) - radius;
+  return sqrt(pow(radius,2) + pow(10,2)) - radius;
 }
 
 bool Navigation::detectObstacles(Vector2f p, float curvature){
