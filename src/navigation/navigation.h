@@ -69,14 +69,23 @@ class Navigation {
 
   float InstantaneousTimeDecision();
 
-  float GetFreePathLength(Eigen::Vector2f p, float curvature);
+  float GetFreePathLength(float curvature);
+
+  float GetFreePathLengthForPoint(Eigen::Vector2f p, float curvature);
 
   bool detectObstacles(Eigen::Vector2f p, float curvature);
+
+  std::vector<std::vector<Eigen::Vector2f>> populateCurvatureObstacles();
+
+  std::vector<Eigen::Vector2f> getObstacleForCurvature(float curvature);
+
+  int getIndexFromCurvature(float curvature);
 
   float prev_velocity;
   float remaining_dist;
   float obstacle_margin;
   float sensor_range;
+  std::vector<std::vector<Eigen::Vector2f>> curvature_Obstacles;
 
  private:
 

@@ -62,6 +62,7 @@ const float MAX_DEC = -3;
 const float CAR_LEN = 0.4;
 const float H = 0.5;
 const float W = 0.25;
+const float ANGLE_INC = 0.05;
 } //namespace
 
 namespace navigation {
@@ -149,15 +150,8 @@ void Navigation::Run() {
   // printf("starting\n\n");
   /* Uncomment section below for visualizations
   ___________________________________________*/
-  float freePathLength = sensor_range;
-  for (int i=0; i<(int)point_cloud_.size(); i++){
-    if (detectObstacles(point_cloud_[i], FLAGS_cp2_curvature)){
-      float calculatedLength = GetFreePathLength(point_cloud_[i], FLAGS_cp2_curvature);
-      // if (calculatedLength>0){
-        freePathLength = std::min(calculatedLength, freePathLength);  
-      // }
-    }
-  }
+  populateCurvatureObstacles();
+  float freePathLength = GetFreePathLength(FLAGS_cp2_curvature);;
   printf("\nFree path length: %f\n", freePathLength);
   remaining_dist = freePathLength;
   for (int i=0; i<(int)point_cloud_.size(); i++){
@@ -213,7 +207,17 @@ float Navigation::InstantaneousTimeDecision(){
   }
 }
 
-float Navigation::GetFreePathLength(Vector2f p, float curvature) {
+float Navigation::GetFreePathLength(float curvature) {
+  float freePathLength = sensor_range;
+  vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(curvature)];
+  for (int i=0; i<(int)obstacles.size(); i++){
+      float calculatedLength = GetFreePathLengthForPoint(obstacles[i], curvature);
+      freePathLength = std::min(calculatedLength, freePathLength); 
+  }
+  return freePathLength;
+}
+
+float Navigation::GetFreePathLengthForPoint(Vector2f p, float curvature) {
   if(abs(curvature) <= kEpsilon){
     return p[0] - H;
   }
@@ -239,6 +243,28 @@ bool Navigation::detectObstacles(Vector2f p, float curvature){
     float r2 = sqrt(pow((c[1] + W),2) + pow(H,2));
     return ((pAdj - c).norm() >= r1 && (pAdj - c).norm() <= r2);
   }
+}
+
+vector<Vector2f> Navigation::getObstacleForCurvature(float curvature){
+  vector<Vector2f> obstacle_store;
+  for (int i=0; i<(int)point_cloud_.size(); i++){
+    if (detectObstacles(point_cloud_[i], curvature)){
+      obstacle_store.push_back(point_cloud_[i]);
+    }
+  }
+  return obstacle_store;
+}
+
+vector<vector<Vector2f>> Navigation::populateCurvatureObstacles(){
+  vector<vector<Vector2f>> obstacle_curvature_store;
+  for(float i=-1.0; i<1.0; i+=ANGLE_INC){
+    obstacle_curvature_store.push_back(getObstacleForCurvature(i));
+  }
+  return obstacle_curvature_store;
+}
+
+int Navigation::getIndexFromCurvature(float curvature){
+  return round((curvature + 1) * (1/ANGLE_INC)); 
 }
 
 }  // namespace navigation
