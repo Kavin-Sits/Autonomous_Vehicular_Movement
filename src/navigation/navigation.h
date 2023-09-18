@@ -77,6 +77,10 @@ class Navigation {
 
   float GetFreePathLengthForPoint(Eigen::Vector2f p, float curvature);
 
+  float ClearanceComputation(float curvature);
+
+  float ClearanceComputationForPoint(Eigen::Vector2f p, float curvature);
+
   bool detectObstacles(Eigen::Vector2f p, float curvature);
 
   std::vector<std::vector<Eigen::Vector2f>> populateCurvatureObstacles();

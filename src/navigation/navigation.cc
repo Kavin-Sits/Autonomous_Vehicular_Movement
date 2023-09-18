@@ -61,7 +61,7 @@ const float MAX_ACC = 3;
 const float MAX_DEC = -3;
 const float CAR_LEN = 0.4;
 const float H = 0.5;
-const float W = 0.2;
+const float W = 0.25;
 const float ANGLE_INC = 0.05;
 } //namespace
 
@@ -232,10 +232,10 @@ float Navigation::GetOptimalCurvature(float angleIncrement){
 
 float Navigation::GetPathScore(float curvature){
   const float weight_1 = 1;
-  // const float weight_2 = 0;//.52;
+  const float weight_2 = 1;//.52;
   // const float weight_3 = 0;//.15;
 
-  return GetFreePathLength(curvature) * weight_1; //+ ClearanceComputation(curvature) * weight_2 + GetClosestPointOfApproach(curvature) * weight_3;
+  return GetFreePathLength(curvature) * weight_1 + ClearanceComputation(curvature) * weight_2; //+ GetClosestPointOfApproach(curvature) * weight_3;
 }
 
 float Navigation::GetFreePathLength(float curvature) {
@@ -260,6 +260,35 @@ float Navigation::GetFreePathLengthForPoint(Vector2f p, float curvature) {
     float omega = std::atan2(H, r - W);
     float phi = (theta < 0 ? M_2PI + theta : theta) - omega;
     return r * phi;
+  }
+}
+
+float Navigation::ClearanceComputation(float curvature){
+  float minComp = __FLT_MAX__;
+  for (int i=0; i<(int)point_cloud_.size(); i++){
+    if (!detectObstacles(point_cloud_[i], curvature)){
+      minComp = std::min(minComp, ClearanceComputationForPoint(point_cloud_[i], curvature));
+    }
+  }
+  return minComp;
+}
+
+float Navigation::ClearanceComputationForPoint(Vector2f p, float curvature){
+  if(abs(curvature) <= kEpsilon){
+    return abs(p[1]) - W;
+  }
+  else {
+    float radius = abs(1/curvature);
+    Vector2f c = Vector2f(0, radius);
+    Vector2f pAdj = Vector2f(p[0], curvature > 0 ? p[1] : -p[1]);
+    float r1 = c[1] - W;
+    float r2 = sqrt(pow((c[1] + W),2) + pow(H,2));
+    float pointRadius = (pAdj - c).norm();
+    if(pointRadius >= r2) {
+      return pointRadius - r2;
+    } else {
+      return r1 - pointRadius;
+    }
   }
 }
 
