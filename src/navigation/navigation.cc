@@ -160,16 +160,23 @@ void Navigation::Run() {
   curvature_Obstacles = populateCurvatureObstacles();
   produced_curvature = GetOptimalCurvature(ANGLE_INC);
   float freePathLength = GetFreePathLength(FLAGS_cp2_curvature);
-  // printf("\nFree path length: %f\n", freePathLength);
+  printf("\nFree path length: %f\n", freePathLength);
   remaining_dist = freePathLength;
+  vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(0)];
+  printf("Obstacle list for curvature %f\n", j);
+  for (int i=0; i<(int)obstacles.size(); i++){
+    printf("(%f,%f) ", obstacles[i][0], obstacles[i][1]);
+  }
+  printf("End of list for curvature %f\n", j);
   colorize();
   // printObstacleList();
+  
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = FLAGS_cp2_curvature;
   drive_msg_.velocity = Navigation::InstantaneousTimeDecision();
-  // printf("Speed: %f\n", drive_msg_.velocity);
-  // printf("Curvature: %f\n", drive_msg_.curvature);
+  printf("Speed: %f\n", drive_msg_.velocity);
+  printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
 
   // Add timestamps to all messages.
