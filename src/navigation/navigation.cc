@@ -62,7 +62,7 @@ const float MAX_DEC = -3;
 const float CAR_LEN = 0.4;
 const float H = 0.5;
 const float W = 0.25;
-const float ANGLE_INC = 0.05;
+const float ANGLE_INC = 0.2;
 } //namespace
 
 namespace navigation {
@@ -76,6 +76,7 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     prev_velocity(0),
     remaining_dist(FLAGS_cp1_distance),
     obstacle_margin(0.1),
+    produced_curvature(FLAGS_cp2_curvature),
     sensor_range(0.0),
     odom_initialized_(false),
     localization_initialized_(false),
@@ -151,7 +152,8 @@ void Navigation::Run() {
   /* Uncomment section below for visualizations
   ___________________________________________*/
   curvature_Obstacles = populateCurvatureObstacles();
-  float freePathLength = GetFreePathLength(FLAGS_cp2_curvature);;
+  produced_curvature = GetOptimalCurvature(ANGLE_INC);
+  float freePathLength = GetFreePathLength(produced_curvature);
   printf("\nFree path length: %f\n", freePathLength);
   remaining_dist = freePathLength;
   for (int i=0; i<(int)point_cloud_.size(); i++){
@@ -169,7 +171,7 @@ void Navigation::Run() {
   */
 
   // Eventually, you will have to set the control values to issue drive commands:
-  drive_msg_.curvature = FLAGS_cp2_curvature;
+  drive_msg_.curvature = produced_curvature;
   drive_msg_.velocity = Navigation::InstantaneousTimeDecision();
   printf("Speed: %f\n", Navigation::InstantaneousTimeDecision());
   prev_velocity = drive_msg_.velocity;
@@ -205,6 +207,35 @@ float Navigation::InstantaneousTimeDecision(){
     float vel = decel_adj * 0.05 + prev_velocity;
     return std::max(vel, 0.0f);
   }
+}
+
+float Navigation::GetOptimalCurvature(float angleIncrement){
+  float highestScore = -1 * __FLT_MAX__;
+  float bestCurvature = 0.0;
+  for(float i=0.0; i<=1.0; i+=angleIncrement){
+    float currentScore = GetPathScore(i);
+    float currentOppositeScore = GetPathScore(-1.0 * i);
+    if(currentScore>highestScore){
+      highestScore = currentScore;
+      bestCurvature = i;
+    }
+    if(currentOppositeScore>highestScore){
+      highestScore = currentOppositeScore;
+      bestCurvature = -1.0 * i;
+    }
+    // printf("Free path length: %f and curvature: %f\n", currentScore, i);
+    // if(i!=0) printf("Free path length: %f and curvature: %f\n", currentOppositeScore, -i);
+  }
+  // printf("Highest score: %f and best curvature %f\n", highestScore, bestCurvature);
+  return bestCurvature;
+}
+
+float Navigation::GetPathScore(float curvature){
+  const float weight_1 = 1;
+  // const float weight_2 = 0;//.52;
+  // const float weight_3 = 0;//.15;
+
+  return GetFreePathLength(curvature) * weight_1; //+ ClearanceComputation(curvature) * weight_2 + GetClosestPointOfApproach(curvature) * weight_3;
 }
 
 float Navigation::GetFreePathLength(float curvature) {

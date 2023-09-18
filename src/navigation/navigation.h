@@ -69,6 +69,10 @@ class Navigation {
 
   float InstantaneousTimeDecision();
 
+  float GetOptimalCurvature(float angleIncrement);
+
+  float GetPathScore(float curvature);
+
   float GetFreePathLength(float curvature);
 
   float GetFreePathLengthForPoint(Eigen::Vector2f p, float curvature);
@@ -84,6 +88,7 @@ class Navigation {
   float prev_velocity;
   float remaining_dist;
   float obstacle_margin;
+  float produced_curvature;
   float sensor_range;
   std::vector<std::vector<Eigen::Vector2f>> curvature_Obstacles;
 
