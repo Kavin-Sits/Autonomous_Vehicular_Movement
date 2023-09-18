@@ -93,6 +93,8 @@ class Navigation {
 
   void colorize();
 
+  void printObstacleList();
+
   float prev_velocity;
   float temp_goal_dist;
   float remaining_dist;

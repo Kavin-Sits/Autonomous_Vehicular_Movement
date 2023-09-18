@@ -89,11 +89,12 @@ void LaserCallback(const sensor_msgs::LaserScan& msg) {
   // TODO Convert the LaserScan to a point cloud
   // The LaserScan parameters are accessible as follows:
   // msg.angle_increment // Angular increment between subsequent rays
-  // msg.angle_max // Angle of the first ray
-  // msg.angle_min // Angle of the last ray
+  // msg.angle_max // Angle of the last ray
+  // msg.angle_min // Angle of the first ray
   // msg.range_max // Maximum observable range
   // msg.range_min // Minimum observable range
   // msg.ranges[i] // The range of the i'th ray
+  printf("Max: %f, Min: %f \n", msg.angle_max, msg.angle_min);
   float rays = (msg.angle_max-msg.angle_min) / msg.angle_increment;
   navigation_->sensor_range = msg.range_max;
   navigation_->temp_goal_dist = msg.range_max;
