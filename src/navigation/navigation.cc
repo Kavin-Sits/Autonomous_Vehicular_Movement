@@ -232,8 +232,8 @@ float Navigation::GetOptimalCurvature(float angleIncrement){
 
 float Navigation::GetPathScore(float curvature){
   const float weight_1 = 0.8;
-  const float weight_2 = 0.15;//.52;
-  const float weight_3 = 0.05;//.15;
+  const float weight_2 = 0.2;//.52;
+  const float weight_3 = 0;//0.05;//.15;
 
   return GetFreePathLength(curvature) * weight_1 + ClearanceComputation(curvature) * weight_2 + GetClosestPointOfApproach(curvature) * weight_3;
 }
