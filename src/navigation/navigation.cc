@@ -163,11 +163,11 @@ void Navigation::Run() {
   printf("\nFree path length: %f\n", freePathLength);
   remaining_dist = freePathLength;
   vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(0)];
-  printf("Obstacle list for curvature %f\n", j);
+  printf("Obstacle list for curvature %d\n", 0);
   for (int i=0; i<(int)obstacles.size(); i++){
     printf("(%f,%f) ", obstacles[i][0], obstacles[i][1]);
   }
-  printf("End of list for curvature %f\n", j);
+  printf("End of list for curvature %d\n", 0);
   colorize();
   // printObstacleList();
   
