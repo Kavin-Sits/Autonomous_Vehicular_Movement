@@ -150,7 +150,7 @@ void Navigation::Run() {
   // printf("starting\n\n");
   /* Uncomment section below for visualizations
   ___________________________________________*/
-  populateCurvatureObstacles();
+  curvature_Obstacles = populateCurvatureObstacles();
   float freePathLength = GetFreePathLength(FLAGS_cp2_curvature);;
   printf("\nFree path length: %f\n", freePathLength);
   remaining_dist = freePathLength;
