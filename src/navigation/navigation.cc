@@ -62,6 +62,7 @@ const float MAX_DEC = -3;
 const float CAR_LEN = 0.4;
 const float H = 0.5;
 const float W = 0.25;
+const float ANGLE_INC = 0.2;
 } //namespace
 
 namespace navigation {
@@ -156,12 +157,12 @@ void Navigation::Run() {
   /*
   __________________________________________
   */
-  createObstacleArray();
-  produced_curvature = GetOptimalCurvature(0.2);
+  curvature_Obstacles = populateCurvatureObstacles();
+  produced_curvature = GetOptimalCurvature(ANGLE_INC);
   float freePathLength = GetFreePathLength(produced_curvature);
   printf("\nFree path length: %f\n", freePathLength);
   remaining_dist = freePathLength;
-  colorize(produced_curvature);
+  colorize();
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = produced_curvature;
@@ -242,6 +243,7 @@ float Navigation::GetClosestPointOfApproach(float curvature){
 
 float Navigation::GetFreePathLength(float curvature) {
   float freePathLength = sensor_range;
+  vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(curvature)];
   for (int i=0; i<(int)obstacles.size(); i++){
       float calculatedLength = GetFreePathLengthForPoint(obstacles[i], curvature);
       freePathLength = std::min(calculatedLength, freePathLength); 
@@ -298,20 +300,32 @@ bool Navigation::detectObstacles(Vector2f p, float curvature){
     return ((p - c).norm() >= r1 && (p - c).norm() <= r2);
   }
 }
-
-void Navigation::createObstacleArray(){
+vector<Vector2f> Navigation::getObstacleForCurvature(float curvature){
   vector<Vector2f> obstacle_store;
   for (int i=0; i<(int)point_cloud_.size(); i++){
-    if (detectObstacles(point_cloud_[i], FLAGS_cp2_curvature)){
+    if (detectObstacles(point_cloud_[i], curvature)){
       obstacle_store.push_back(point_cloud_[i]);
     }
   }
-  obstacles = obstacle_store;
+  return obstacle_store;
 }
 
-void Navigation::colorize(float curvature){
-  for (int i=0; i<(int)obstacles.size(); i++){
-    visualization::DrawPoint(obstacles[i], 0xfcf403, local_viz_msg_);
+vector<vector<Vector2f>> Navigation::populateCurvatureObstacles(){
+  vector<vector<Vector2f>> obstacle_curvature_store;
+  for(float i=-1.0; i<1.0; i+=ANGLE_INC){
+    obstacle_curvature_store.push_back(getObstacleForCurvature(i));
+  }
+  return obstacle_curvature_store;
+}
+
+void Navigation::colorize(){
+  float colorAdd = 0xff;
+  for(float j=-1.0; j<1.0; j+=ANGLE_INC){
+    vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(j)];
+    for (int i=0; i<(int)obstacles.size(); i++){
+      visualization::DrawPoint(obstacles[i], 0x0000ff + colorAdd, local_viz_msg_);
+    }
+    colorAdd += 0x0f0f0f;
   }
   // for (int i=0; i<(int)point_cloud_.size(); i++){
   //   if (detectObstacles(point_cloud_[i], curvature)){
@@ -322,6 +336,10 @@ void Navigation::colorize(float curvature){
   //     visualization::DrawPoint(point_cloud_[i], 0xdf03fc, local_viz_msg_);
   //   }
   // }
+}
+
+int Navigation::getIndexFromCurvature(float curvature){
+  return (int) ((curvature + 1) * (1.0/ANGLE_INC)); 
 }
 
 }  // namespace navigation

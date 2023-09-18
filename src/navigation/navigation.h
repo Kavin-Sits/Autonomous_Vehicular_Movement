@@ -85,9 +85,13 @@ class Navigation {
 
   bool detectObstacles(Eigen::Vector2f p, float curvature);
 
-  void createObstacleArray();
+  std::vector<Eigen::Vector2f> getObstacleForCurvature(float curvature);
 
-  void colorize(float curvature);
+  std::vector<std::vector<Eigen::Vector2f>> populateCurvatureObstacles();
+
+  int getIndexFromCurvature(float curvature);
+
+  void colorize();
 
   float prev_velocity;
   float temp_goal_dist;
@@ -95,7 +99,7 @@ class Navigation {
   float obstacle_margin;
   float sensor_range;
   float produced_curvature;
-  std::vector<Eigen::Vector2f> obstacles;
+  std::vector<std::vector<Eigen::Vector2f>> curvature_Obstacles;
 
  private:
 
