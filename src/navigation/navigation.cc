@@ -232,10 +232,10 @@ float Navigation::GetOptimalCurvature(float angleIncrement){
 
 float Navigation::GetPathScore(float curvature){
   const float weight_1 = 1;
-  const float weight_2 = 2;//.52;
-  // const float weight_3 = 0;//.15;
+  const float weight_2 = 0;//.52;
+  const float weight_3 = 1;//.15;
 
-  return GetFreePathLength(curvature) * weight_1 + ClearanceComputation(curvature) * weight_2; //+ GetClosestPointOfApproach(curvature) * weight_3;
+  return GetFreePathLength(curvature) * weight_1 + ClearanceComputation(curvature) * weight_2 + GetClosestPointOfApproach(curvature) * weight_3;
 }
 
 float Navigation::GetFreePathLength(float curvature) {
@@ -290,6 +290,13 @@ float Navigation::ClearanceComputationForPoint(Vector2f p, float curvature){
       return r1 - pointRadius;
     }
   }
+}
+
+float Navigation::GetClosestPointOfApproach(float curvature){
+  if(abs(curvature)<kEpsilon) return 0;
+
+  float radius = 1/curvature;
+  return sqrt(pow(radius,2) + pow(1.5,2)) - radius;
 }
 
 bool Navigation::detectObstacles(Vector2f p, float curvature){

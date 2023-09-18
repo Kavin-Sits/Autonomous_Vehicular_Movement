@@ -80,6 +80,8 @@ class Navigation {
   float ClearanceComputation(float curvature);
 
   float ClearanceComputationForPoint(Eigen::Vector2f p, float curvature);
+  
+  float GetClosestPointOfApproach(float curvature);
 
   bool detectObstacles(Eigen::Vector2f p, float curvature);
 
