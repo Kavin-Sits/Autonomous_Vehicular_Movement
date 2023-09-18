@@ -234,9 +234,10 @@ bool Navigation::detectObstacles(Vector2f p, float curvature){
   }
   else{
     Vector2f c = Vector2f(0, abs(1/curvature));
+    Vector2f pAdj = Vector2f(p[0], curvature > 0 ? p[1] : -p[1]);
     float r1 = c[1] - W;
     float r2 = sqrt(pow((c[1] + W),2) + pow(H,2));
-    return ((p - c).norm() >= r1 && (p - c).norm() <= r2);
+    return ((pAdj - c).norm() >= r1 && (pAdj - c).norm() <= r2);
   }
 }
 
