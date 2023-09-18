@@ -119,17 +119,6 @@ void Navigation::UpdateOdometry(const Vector2f& loc,
     odom_angle_ = angle;
     return;
   }
-  float freePathLength = sensor_range;
-  for (int i=0; i<(int)point_cloud_.size(); i++){
-    if (detectObstacles(point_cloud_[i], FLAGS_cp2_curvature)){
-      float calculatedLength = GetFreePathLength(point_cloud_[i], FLAGS_cp2_curvature);
-      // if (calculatedLength>0){
-        freePathLength = std::min(calculatedLength, freePathLength);  
-      // }
-    }
-  }
-  printf("\nFree path length: %f\n", freePathLength);
-  remaining_dist = freePathLength;
   // 1D TOC travel
   // remaining_dist = remaining_dist - (loc - odom_loc_).norm();
   // printf("Remaining Distance %f\n", remaining_dist);
@@ -160,6 +149,17 @@ void Navigation::Run() {
   // printf("starting\n\n");
   /* Uncomment section below for visualizations
   ___________________________________________*/
+  float freePathLength = sensor_range;
+  for (int i=0; i<(int)point_cloud_.size(); i++){
+    if (detectObstacles(point_cloud_[i], FLAGS_cp2_curvature)){
+      float calculatedLength = GetFreePathLength(point_cloud_[i], FLAGS_cp2_curvature);
+      // if (calculatedLength>0){
+        freePathLength = std::min(calculatedLength, freePathLength);  
+      // }
+    }
+  }
+  printf("\nFree path length: %f\n", freePathLength);
+  remaining_dist = freePathLength;
   for (int i=0; i<(int)point_cloud_.size(); i++){
     if (detectObstacles(point_cloud_[i], FLAGS_cp2_curvature)){
       // printf("Obstacle at point: (%f, %f)\n", point_cloud_[i][0], point_cloud_[i][1]);
@@ -218,12 +218,12 @@ float Navigation::GetFreePathLength(Vector2f p, float curvature) {
     return p[0] - H;
   }
   else{
-    float r = abs(1/curvature);
+    float r = abs(1.0/curvature);
     float x = p[0];
-    float y = p[1];
+    float y = curvature < 0 ? -p[1] : p[1];
     float theta = std::atan2(x, r - y);
     float omega = std::atan2(H, r - W);
-    float phi = abs(theta - omega);
+    float phi = (theta < 0 ? M_2PI + theta : theta) - omega;
     return r * phi;
   }
 }
