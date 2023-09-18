@@ -160,7 +160,7 @@ void Navigation::Run() {
   curvature_Obstacles = populateCurvatureObstacles();
   produced_curvature = GetOptimalCurvature(ANGLE_INC);
   float freePathLength = GetFreePathLength(FLAGS_cp2_curvature);
-  printf("\nFree path length: %f\n", freePathLength);
+  // printf("\nFree path length: %f\n", freePathLength);
   remaining_dist = freePathLength;
   colorize();
   // printObstacleList();
@@ -168,8 +168,8 @@ void Navigation::Run() {
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = FLAGS_cp2_curvature;
   drive_msg_.velocity = Navigation::InstantaneousTimeDecision();
-  printf("Speed: %f\n", drive_msg_.velocity);
-  printf("Curvature: %f\n", drive_msg_.curvature);
+  // printf("Speed: %f\n", drive_msg_.velocity);
+  // printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
 
   // Add timestamps to all messages.
@@ -290,10 +290,10 @@ float Navigation::GetOptimalCurvature(float angleIncrement){
       highestScore = currentOppositeScore;
       bestCurvature = -1.0 * i;
     }
-    printf("Free path length: %f and curvature: %f\n", currentScore, i);
-    if(i!=0) printf("Free path length: %f and curvature: %f\n", currentOppositeScore, -i);
+    // printf("Free path length: %f and curvature: %f\n", currentScore, i);
+    // if(i!=0) printf("Free path length: %f and curvature: %f\n", currentOppositeScore, -i);
   }
-  printf("Highest score: %f and best curvature %f\n", highestScore, bestCurvature);
+  // printf("Highest score: %f and best curvature %f\n", highestScore, bestCurvature);
   return bestCurvature;
 }
 
