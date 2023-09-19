@@ -79,7 +79,6 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     obstacle_margin(0.1),
     produced_curvature(FLAGS_cp2_curvature),
     sensor_range(0.0),
-    produced_curvature(FLAGS_cp2_curvature),
     odom_initialized_(false),
     localization_initialized_(false),
     robot_loc_(0, 0),
@@ -156,25 +155,13 @@ void Navigation::Run() {
   curvature_Obstacles = populateCurvatureObstacles();
   produced_curvature = GetOptimalCurvature(ANGLE_INC);
   float freePathLength = GetFreePathLength(produced_curvature);
-  colorize();
+  // colorize();
   printf("\nFree path length: %f\n", freePathLength);
   remaining_dist = freePathLength;
   // printf("ending\n\n");
   /*
   __________________________________________
   */
-  curvature_Obstacles = populateCurvatureObstacles();
-  produced_curvature = GetOptimalCurvature(ANGLE_INC);
-  float freePathLength = GetFreePathLength(FLAGS_cp2_curvature);
-  printf("\nFree path length: %f\n", freePathLength);
-  remaining_dist = freePathLength;
-  vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(0)];
-  printf("Obstacle list for curvature %d\n", 0);
-  for (int i=0; i<(int)obstacles.size(); i++){
-    printf("(%f,%f) ", obstacles[i][0], obstacles[i][1]);
-  }
-  printf("End of list for curvature %d\n", 0);
-  colorize();
   // printObstacleList();
   
 
@@ -355,59 +342,18 @@ void Navigation::colorize(){
     }
   }
 }
-vector<Vector2f> Navigation::getObstacleForCurvature(float curvature){
-  vector<Vector2f> obstacle_store;
-  for (int i=0; i<(int)point_cloud_.size(); i++){
-    if (detectObstacles(point_cloud_[i], curvature)){
-      obstacle_store.push_back(point_cloud_[i]);
-    }
-  }
-  return obstacle_store;
-}
 
-vector<vector<Vector2f>> Navigation::populateCurvatureObstacles(){
-  vector<vector<Vector2f>> obstacle_curvature_store;
-  for(float i=-1.0; i<1.0; i+=ANGLE_INC){
-    obstacle_curvature_store.push_back(getObstacleForCurvature(i));
-  }
-  return obstacle_curvature_store;
-}
-
-void Navigation::colorize(){
-  vector<int> colors = {0xeb4034, 0xfcba03, 0x34eb5f, 0x34eb5f, 0xeb34e5, 0x73fc03, 0x03fcf0, 0x6bfc03, 0x03fc8c, 0xc603fc};
-  for(float j=-1.0; j<1.0; j+=ANGLE_INC){
-    vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(j)];
-    for (int i=0; i<(int)obstacles.size(); i++){
-      visualization::DrawPoint(obstacles[i], colors[getIndexFromCurvature(j)%5], local_viz_msg_);
-      visualization::DrawPathOption(j, GetFreePathLength(j), ClearanceComputation(j), colors[getIndexFromCurvature(j)%10], true, local_viz_msg_);
-    }
-  }
-  // for (int i=0; i<(int)point_cloud_.size(); i++){
-  //   if (detectObstacles(point_cloud_[i], curvature)){
-  //     // printf("Obstacle at point: (%f, %f)\n", point_cloud_[i][0], point_cloud_[i][1]);
-  //     visualization::DrawPoint(point_cloud_[i], 0xfcf403, local_viz_msg_);
-  //   }
-  //   else{
-  //     visualization::DrawPoint(point_cloud_[i], 0xdf03fc, local_viz_msg_);
-  //   }
-  // }
-}
-
-int Navigation::getIndexFromCurvature(float curvature){
-  return round((curvature + 1) * (1/ANGLE_INC)); 
-}
-
-void Navigation::printObstacleList(){
-  printf("\n\n");
-  for(float j=-1.0; j<1.0; j+=ANGLE_INC){
-    vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(j)];
-    printf("Obstacle list for curvature %f\n", j);
-    for (int i=0; i<(int)obstacles.size(); i++){
-      printf("(%f,%f) ", obstacles[i][0], obstacles[i][1]);
-    }
-    printf("End of list for curvature %f\n", j);
-  }
-  printf("\n");
-}
+// void Navigation::printObstacleList(){
+//   printf("\n\n");
+//   for(float j=-1.0; j<1.0; j+=ANGLE_INC){
+//     vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(j)];
+//     printf("Obstacle list for curvature %f\n", j);
+//     for (int i=0; i<(int)obstacles.size(); i++){
+//       printf("(%f,%f) ", obstacles[i][0], obstacles[i][1]);
+//     }
+//     printf("End of list for curvature %f\n", j);
+//   }
+//   printf("\n");
+// }
 
 }  // namespace navigation
