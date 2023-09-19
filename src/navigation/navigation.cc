@@ -62,7 +62,7 @@ const float MAX_DEC = -3;
 const float CAR_LEN = 0.4;
 const float H = 0.5;
 const float W = 0.25;
-const float ANGLE_INC = 0.05;
+const float ANGLE_INC = 0.2;
 } //namespace
 
 namespace navigation {
@@ -77,6 +77,7 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     temp_goal_dist(0),
     remaining_dist(FLAGS_cp1_distance),
     obstacle_margin(0.1),
+    produced_curvature(FLAGS_cp2_curvature),
     sensor_range(0.0),
     produced_curvature(FLAGS_cp2_curvature),
     odom_initialized_(false),
@@ -152,7 +153,12 @@ void Navigation::Run() {
   // printf("starting\n\n");
   /* Uncomment section below for visualizations
   ___________________________________________*/
-  
+  curvature_Obstacles = populateCurvatureObstacles();
+  produced_curvature = GetOptimalCurvature(ANGLE_INC);
+  float freePathLength = GetFreePathLength(produced_curvature);
+  colorize();
+  printf("\nFree path length: %f\n", freePathLength);
+  remaining_dist = freePathLength;
   // printf("ending\n\n");
   /*
   __________________________________________
@@ -173,7 +179,7 @@ void Navigation::Run() {
   
 
   // Eventually, you will have to set the control values to issue drive commands:
-  drive_msg_.curvature = FLAGS_cp2_curvature;
+  drive_msg_.curvature = produced_curvature;
   drive_msg_.velocity = Navigation::InstantaneousTimeDecision();
   printf("Speed: %f\n", drive_msg_.velocity);
   printf("Curvature: %f\n", drive_msg_.curvature);
@@ -214,6 +220,60 @@ float Navigation::InstantaneousTimeDecision(){
   }
 }
 
+float Navigation::GetOptimalCurvature(float angleIncrement){
+  float highestScore = -1 * __FLT_MAX__;
+  float bestCurvature = 0.0;
+  for(float i=0.0; i<=1.0; i+=angleIncrement){
+    float currentScore = GetPathScore(i);
+    float currentOppositeScore = GetPathScore(-1.0 * i);
+    if(currentScore>highestScore){
+      highestScore = currentScore;
+      bestCurvature = i;
+    }
+    if(currentOppositeScore>highestScore){
+      highestScore = currentOppositeScore;
+      bestCurvature = -1.0 * i;
+    }
+    // printf("Free path length: %f and curvature: %f\n", currentScore, i);
+    // if(i!=0) printf("Free path length: %f and curvature: %f\n", currentOppositeScore, -i);
+  }
+  // printf("Highest score: %f and best curvature %f\n", highestScore, bestCurvature);
+  return bestCurvature;
+}
+
+float Navigation::GetPathScore(float curvature){
+  const float weight_1 = 1;
+  const float weight_2 = 0;//.52;
+  const float weight_3 = 0;//0.05;//.15;
+
+  return GetFreePathLength(curvature) * weight_1 + ClearanceComputation(curvature) * weight_2 + GetClosestPointOfApproach(curvature) * weight_3;
+}
+
+float Navigation::GetFreePathLength(float curvature) {
+  float freePathLength = sensor_range;
+  vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(curvature)];
+  for (int i=0; i<(int)obstacles.size(); i++){
+      float calculatedLength = GetFreePathLengthForPoint(obstacles[i], curvature);
+      freePathLength = std::min(calculatedLength, freePathLength); 
+  }
+  return freePathLength;
+}
+
+float Navigation::GetFreePathLengthForPoint(Vector2f p, float curvature) {
+  if(abs(curvature) <= kEpsilon){
+    return p[0] - H;
+  }
+  else{
+    float r = abs(1.0/curvature);
+    float x = p[0];
+    float y = curvature < 0 ? -p[1] : p[1];
+    float theta = std::atan2(x, r - y);
+    float omega = std::atan2(H, r - W);
+    float phi = (theta < 0 ? M_2PI + theta : theta) - omega;
+    return r * phi;
+  }
+}
+
 float Navigation::ClearanceComputation(float curvature){
   float minComp = __FLT_MAX__;
   for (int i=0; i<(int)point_cloud_.size(); i++){
@@ -247,61 +307,7 @@ float Navigation::GetClosestPointOfApproach(float curvature){
   if(abs(curvature)<kEpsilon) return 0;
 
   float radius = 1/curvature;
-  return sqrt(pow(radius,2) + pow(temp_goal_dist,2)) - radius;
-}
-
-float Navigation::GetFreePathLength(float curvature) {
-  float freePathLength = sensor_range;
-  vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(curvature)];
-  for (int i=0; i<(int)obstacles.size(); i++){
-      float calculatedLength = GetFreePathLengthForPoint(obstacles[i], curvature);
-      freePathLength = std::min(calculatedLength, freePathLength); 
-  }
-  return freePathLength;
-}
-
-float Navigation::GetFreePathLengthForPoint(Vector2f p, float curvature) {
-  if(abs(curvature) <= kEpsilon){
-    return p[0] - H;
-  }
-  else{
-    float r = abs(1.0/curvature);
-    float x = p[0];
-    float y = curvature < 0 ? -p[1] : p[1];
-    float theta = std::atan2(x, r - y);
-    float omega = std::atan2(H, r - W);
-    float phi = (theta < 0 ? M_2PI + theta : theta) - omega;
-    return r * phi;
-  }
-}
-
-float Navigation::GetPathScore(float curvature){
-  const float weight_1 = .33;
-  const float weight_2 = 0;//.52;
-  const float weight_3 = 0;//.15;
-
-  return GetFreePathLength(curvature) * weight_1 + ClearanceComputation(curvature) * weight_2 + GetClosestPointOfApproach(curvature) * weight_3;
-}
-
-float Navigation::GetOptimalCurvature(float angleIncrement){
-  float highestScore = -1 * __FLT_MAX__;
-  float bestCurvature = 0.0;
-  for(float i=0.0; i<=1.0; i+=angleIncrement){
-    float currentScore = GetPathScore(i);
-    float currentOppositeScore = GetPathScore(-1.0 * i);
-    if(currentScore>highestScore){
-      highestScore = currentScore;
-      bestCurvature = i;
-    }
-    if(currentOppositeScore>highestScore){
-      highestScore = currentOppositeScore;
-      bestCurvature = -1.0 * i;
-    }
-    // printf("Free path length: %f and curvature: %f\n", currentScore, i);
-    // if(i!=0) printf("Free path length: %f and curvature: %f\n", currentOppositeScore, -i);
-  }
-  // printf("Highest score: %f and best curvature %f\n", highestScore, bestCurvature);
-  return bestCurvature;
+  return sqrt(pow(radius,2) + pow(10,2)) - radius;
 }
 
 bool Navigation::detectObstacles(Vector2f p, float curvature){
@@ -314,6 +320,39 @@ bool Navigation::detectObstacles(Vector2f p, float curvature){
     float r1 = c[1] - W;
     float r2 = sqrt(pow((c[1] + W),2) + pow(H,2));
     return ((pAdj - c).norm() >= r1 && (pAdj - c).norm() <= r2);
+  }
+}
+
+vector<Vector2f> Navigation::getObstacleForCurvature(float curvature){
+  vector<Vector2f> obstacle_store;
+  for (int i=0; i<(int)point_cloud_.size(); i++){
+    if (detectObstacles(point_cloud_[i], curvature)){
+      obstacle_store.push_back(point_cloud_[i]);
+    }
+  }
+  return obstacle_store;
+}
+
+vector<vector<Vector2f>> Navigation::populateCurvatureObstacles(){
+  vector<vector<Vector2f>> obstacle_curvature_store;
+  for(float i=-1.0; i<1.0; i+=ANGLE_INC){
+    obstacle_curvature_store.push_back(getObstacleForCurvature(i));
+  }
+  return obstacle_curvature_store;
+}
+
+int Navigation::getIndexFromCurvature(float curvature){
+  return round((curvature + 1) * (1/ANGLE_INC)); 
+}
+
+void Navigation::colorize(){
+  vector<int> colors = {0xeb4034, 0xfcba03, 0x34eb5f, 0x34eb5f, 0xeb34e5, 0x73fc03, 0x03fcf0, 0x6bfc03, 0x03fc8c, 0xc603fc};
+  for(float j=-1.0; j<1.0; j+=ANGLE_INC){
+    vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(j)];
+    for (int i=0; i<(int)obstacles.size(); i++){
+      visualization::DrawPoint(obstacles[i], colors[getIndexFromCurvature(j)%5], local_viz_msg_);
+      visualization::DrawPathOption(j, GetFreePathLength(j), ClearanceComputation(j), colors[getIndexFromCurvature(j)%10], true, local_viz_msg_);
+    }
   }
 }
 vector<Vector2f> Navigation::getObstacleForCurvature(float curvature){
