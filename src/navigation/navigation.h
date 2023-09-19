@@ -98,6 +98,7 @@ class Navigation {
   float obstacle_margin;
   float produced_curvature;
   float sensor_range;
+  float goalDist;
   std::vector<std::vector<Eigen::Vector2f>> curvature_Obstacles;
 
  private:

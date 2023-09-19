@@ -78,6 +78,7 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     obstacle_margin(0.1),
     produced_curvature(FLAGS_cp2_curvature),
     sensor_range(0.0),
+    goalDist(10.0),
     odom_initialized_(false),
     localization_initialized_(false),
     robot_loc_(0, 0),
@@ -204,7 +205,7 @@ float Navigation::InstantaneousTimeDecision(){
 float Navigation::GetOptimalCurvature(float angleIncrement){
   float highestScore = -1 * __FLT_MAX__;
   float bestCurvature = 0.0;
-  for(float i=0.0; i<=1.0; i+=angleIncrement){
+  for(float i=-1.0; i<=0.0; i+=angleIncrement){
     float currentScore = GetPathScore(i);
     float currentOppositeScore = GetPathScore(-1.0 * i);
     if(currentScore>highestScore){
@@ -288,7 +289,7 @@ float Navigation::GetClosestPointOfApproach(float curvature){
   if(abs(curvature)<kEpsilon) return 0;
 
   float radius = 1/curvature;
-  return sqrt(pow(radius,2) + pow(10,2)) - radius;
+  return sqrt(radius * radius + goalDist * goalDist) - radius;
 }
 
 bool Navigation::detectObstacles(Vector2f p, float curvature){
