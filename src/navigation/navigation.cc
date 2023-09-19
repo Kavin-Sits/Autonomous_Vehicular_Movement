@@ -204,7 +204,7 @@ float Navigation::InstantaneousTimeDecision(){
 float Navigation::GetOptimalCurvature(float angleIncrement){
   float highestScore = -1 * __FLT_MAX__;
   float bestCurvature = 0.0;
-  for(float i=1.0; i>=0.0; i-=angleIncrement){
+  for(float i=0.0; i<=1.0; i+=angleIncrement){
     float currentScore = GetPathScore(i);
     float currentOppositeScore = GetPathScore(-1.0 * i);
     if(currentScore>highestScore){
