@@ -155,7 +155,8 @@ void Navigation::Run() {
   curvature_Obstacles = populateCurvatureObstacles();
   produced_curvature = GetOptimalCurvature(ANGLE_INC);
   float freePathLength = GetFreePathLength(produced_curvature);
-  // colorize();
+  colorize();
+  visualization::DrawPathOption(produced_curvature, GetFreePathLength(produced_curvature), ClearanceComputation(produced_curvature), 0x34eb5b, true, local_viz_msg_);
   printf("\nFree path length: %f\n", freePathLength);
   remaining_dist = freePathLength;
   // printf("ending\n\n");
@@ -334,11 +335,12 @@ int Navigation::getIndexFromCurvature(float curvature){
 
 void Navigation::colorize(){
   vector<int> colors = {0xeb4034, 0xfcba03, 0x34eb5f, 0x34eb5f, 0xeb34e5, 0x73fc03, 0x03fcf0, 0x6bfc03, 0x03fc8c, 0xc603fc};
+  int colorPaths = 0xeb4034;
   for(float j=-1.0; j<1.0; j+=ANGLE_INC){
     vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(j)];
     for (int i=0; i<(int)obstacles.size(); i++){
       visualization::DrawPoint(obstacles[i], colors[getIndexFromCurvature(j)%5], local_viz_msg_);
-      visualization::DrawPathOption(j, GetFreePathLength(j), ClearanceComputation(j), colors[getIndexFromCurvature(j)%10], true, local_viz_msg_);
+      visualization::DrawPathOption(j, GetFreePathLength(j), ClearanceComputation(j), colorPaths, true, local_viz_msg_);
     }
   }
 }
