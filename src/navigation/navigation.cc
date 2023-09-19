@@ -230,9 +230,9 @@ float Navigation::GetOptimalCurvature(float angleIncrement){
 }
 
 float Navigation::GetPathScore(float curvature){
-  const float weight_1 = 1;
-  const float weight_2 = 0;//.52;
-  const float weight_3 = 0;//0.05;//.15;
+  const float weight_1 = 0.85;
+  const float weight_2 = 0.05;//.52;
+  const float weight_3 = 0.10;//0.05;//.15;
 
   return GetFreePathLength(curvature) * weight_1 + ClearanceComputation(curvature) * weight_2 + GetClosestPointOfApproach(curvature) * weight_3;
 }
@@ -264,8 +264,53 @@ float Navigation::GetFreePathLengthForPoint(Vector2f p, float curvature) {
 
 float Navigation::ClearanceComputation(float curvature){
   float minComp = __FLT_MAX__;
+  // need to hande 0 curvature case
+  vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(curvature)];
+  if(abs(curvature)<kEpsilon) {
+    // get the closest obstacle
+    Vector2f closestObstacle = obstacles[0];
+    for(int i = 0; i<(int)obstacles.size(); i++) {
+      float x = obstacles[i][0];
+      if(x < closestObstacle[0]) {
+        closestObstacle = obstacles[i];
+      }
+    }
+
+    // ignore clearance candidates past our closest obstacle
+    for (int i=0; i<(int)point_cloud_.size(); i++){
+      if (!detectObstacles(point_cloud_[i], curvature)){
+        float x = point_cloud_[i][0];
+        if(x > closestObstacle[0]) continue;
+        minComp = std::min(closestObstacle[0] - x, minComp);
+      }
+    }
+    return minComp;
+  }
+
+  float r = abs(1/curvature);
+
+  // get theta for the closest obstacle
+  float smallestTheta = __FLT_MAX__;
   for (int i=0; i<(int)point_cloud_.size(); i++){
     if (!detectObstacles(point_cloud_[i], curvature)){
+      float x = point_cloud_[i][0];
+      float y = point_cloud_[i][1];
+      // need to handle negative theta
+      float theta = std::atan2(x, r - y);
+      smallestTheta = std::min(theta, smallestTheta);
+    }
+  }
+
+  for (int i=0; i<(int)point_cloud_.size(); i++){
+    if (!detectObstacles(point_cloud_[i], curvature)){
+      float x = point_cloud_[i][0];
+      float y = point_cloud_[i][1];
+      // need to handle negative theta
+      float theta = std::atan2(x, r - y);
+      // ignore points that are past our closest obstacle
+      if(theta > smallestTheta) {
+        continue;
+      }
       minComp = std::min(minComp, ClearanceComputationForPoint(point_cloud_[i], curvature));
     }
   }
