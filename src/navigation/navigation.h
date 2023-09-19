@@ -91,6 +91,8 @@ class Navigation {
 
   int getIndexFromCurvature(float curvature);
 
+  void colorize();
+
   float prev_velocity;
   float remaining_dist;
   float obstacle_margin;
