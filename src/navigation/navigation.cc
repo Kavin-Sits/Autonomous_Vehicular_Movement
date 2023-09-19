@@ -150,7 +150,7 @@ void Navigation::Run() {
 
   // The latest observed point cloud is accessible via "point_cloud_"
   // printf("starting\n\n");
-  /* Uncomment section below for visualizations
+  /* Instantiating values related to obstacles and curvature
   ___________________________________________*/
   curvature_Obstacles = populateCurvatureObstacles();
   produced_curvature = GetOptimalCurvature(ANGLE_INC);
@@ -185,6 +185,7 @@ void Navigation::Run() {
   // printf("Total time for funtion run: %f\n", t_end - t_start);
 }
 
+//Handling Time Optimal Control with latency adjustments
 float Navigation::InstantaneousTimeDecision(){
   float remaining_dist_latency_accomodated = remaining_dist - prev_velocity * 0.3;
   float velocity_req = prev_velocity+MAX_ACC*0.05;
@@ -208,6 +209,7 @@ float Navigation::InstantaneousTimeDecision(){
   }
 }
 
+//Determining what curvature to use based on other helper methods
 float Navigation::GetOptimalCurvature(float angleIncrement){
   float highestScore = -1 * __FLT_MAX__;
   float bestCurvature = 0.0;
@@ -229,6 +231,7 @@ float Navigation::GetOptimalCurvature(float angleIncrement){
   return bestCurvature;
 }
 
+//Calculating scores using combination of approaches
 float Navigation::GetPathScore(float curvature){
   const float weight_1 = 0.85;
   const float weight_2 = 0.05;//.52;
@@ -237,6 +240,8 @@ float Navigation::GetPathScore(float curvature){
   return GetFreePathLength(curvature) * weight_1 + ClearanceComputation(curvature) * weight_2 + GetClosestPointOfApproach(curvature) * weight_3;
 }
 
+//Helper methods for path score calulation
+//____________________________________________________________________________________________________________________________________________________
 float Navigation::GetFreePathLength(float curvature) {
   float freePathLength = sensor_range;
   vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(curvature)];
@@ -378,6 +383,8 @@ float Navigation::GetClosestPointOfApproach(float curvature){
   float closestDistance = (closestPoint - tempGoal).norm();
   return closestDistance;
 }
+
+//____________________________________________________________________________________________________________________________________________________
 
 bool Navigation::detectObstacles(Vector2f p, float curvature){
   if(abs(curvature) <= kEpsilon){
