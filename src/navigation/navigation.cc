@@ -292,10 +292,46 @@ float Navigation::ClearanceComputationForPoint(Vector2f p, float curvature){
 }
 
 float Navigation::GetClosestPointOfApproach(float curvature){
-  if(abs(curvature)<kEpsilon) return 0;
+  vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(curvature)];
 
-  float radius = 1/curvature;
-  return sqrt(pow(radius,2) + pow(10,2)) - radius;
+  if(abs(curvature)<kEpsilon) {
+    Vector2f closestObstacle = obstacles[0];
+    for(int i = 0; i<(int)obstacles.size(); i++) {
+      float x = obstacles[i][0];
+      if(x < closestObstacle[0]) {
+        closestObstacle = obstacles[i];
+      }
+    }
+    float x = closestObstacle[0];
+    return x > temp_goal_dist ? 0 : (temp_goal_dist - x);
+  }
+
+  float radius = abs(1/curvature);
+  Vector2f closestObstacle = obstacles[0];
+  // handle for if no obstacle exists
+  float smallestTheta = __FLT_MAX__;
+  for(int i = 0; i<(int)obstacles.size(); i++) {
+    float x = obstacles[i][0];
+    float y = obstacles[i][1];
+    // add error handling for negative angles
+    float theta = std::atan2(x, radius - y);
+    if(theta < smallestTheta) {
+      closestObstacle = obstacles[i];
+      smallestTheta = theta;
+    }
+  }
+  // add error handling for negative angles
+  float omega = std::atan2(temp_goal_dist, radius);
+
+  // if we have no obstacles before we reach the nearest point
+  if(smallestTheta > omega) {
+    return sqrt(pow(radius,2) + pow(temp_goal_dist,2)) - radius;
+  }
+
+  Vector2f closestPoint = Vector2f(radius * sin(smallestTheta), radius - radius * cos(smallestTheta));
+  Vector2f tempGoal = Vector2f(temp_goal_dist, 0);
+  float closestDistance = (closestPoint - tempGoal).norm();
+  return closestDistance;
 }
 
 bool Navigation::detectObstacles(Vector2f p, float curvature){
