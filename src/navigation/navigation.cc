@@ -154,7 +154,7 @@ void Navigation::Run() {
   curvature_Obstacles = populateCurvatureObstacles();
   produced_curvature = GetOptimalCurvature(ANGLE_INC);
   float freePathLength = GetFreePathLength(produced_curvature);
-  colorize();
+  // colorize();
   printf("\nFree path length: %f\n", freePathLength);
   remaining_dist = freePathLength;
   // printf("ending\n\n");
