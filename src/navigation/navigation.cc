@@ -56,7 +56,7 @@ VisualizationMsg global_viz_msg_;
 AckermannCurvatureDriveMsg drive_msg_;
 // Epsilon value for handling limited numerical precision.
 const float kEpsilon = 1e-5;
-const float MAX_VEL = 1;
+const float MAX_VEL = 2;
 const float MAX_ACC = 3;
 const float MAX_DEC = -3;
 const float CAR_LEN = 0.4;
