@@ -67,7 +67,7 @@ class Navigation {
   // Used to set the next target pose.
   void SetNavGoal(const Eigen::Vector2f& loc, float angle);
 
-  float InstantaneousTimeDecision();
+  float GetVelocity(float dist_remaining);
 
   float GetOptimalCurvature(float angleIncrement);
 
@@ -95,7 +95,7 @@ class Navigation {
 
   float prev_velocity;
   float temp_goal_dist;
-  float remaining_dist;
+  float dist_remaining;
   float obstacle_margin;
   float produced_curvature;
   float sensor_range;

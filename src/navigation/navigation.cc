@@ -56,13 +56,19 @@ VisualizationMsg global_viz_msg_;
 AckermannCurvatureDriveMsg drive_msg_;
 // Epsilon value for handling limited numerical precision.
 const float kEpsilon = 1e-5;
-const float MAX_VEL = 1;
-const float MAX_ACC = 3;
-const float MAX_DEC = -3;
-const float CAR_LEN = 0.4;
-const float H = 0.5;
-const float W = 0.25;
-const float ANGLE_INC = 0.2;
+// seconds
+const float TIME_STEP = 0.05; // Interval between time steps
+const float SYSTEM_LATENCY = 0.3;
+// meters/second
+const float MAX_VELOCITY = 1;
+// meters/second^2
+const float MAX_ACCELERATION = 3;
+const float MAX_DECELERATION = -3;
+// meters
+const float H = 0.5; // car length
+const float W = 0.25; // car width
+// meters^-1
+const float CURVATURE_STEP = 0.2;
 } //namespace
 
 namespace navigation {
@@ -75,7 +81,7 @@ string GetMapFileFromName(const string& map) {
 Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     prev_velocity(0),
     temp_goal_dist(0),
-    remaining_dist(FLAGS_cp1_distance),
+    dist_remaining(FLAGS_cp1_distance),
     obstacle_margin(0.1),
     produced_curvature(FLAGS_cp2_curvature),
     sensor_range(0.0),
@@ -122,10 +128,6 @@ void Navigation::UpdateOdometry(const Vector2f& loc,
     odom_angle_ = angle;
     return;
   }
-  // 1D TOC travel
-  // remaining_dist = remaining_dist - (loc - odom_loc_).norm();
-  // printf("Remaining Distance %f\n", remaining_dist);
-  // printf("total traversal %f\n", (loc-odom_start_loc_).norm());
   odom_loc_ = loc;
   odom_angle_ = angle;
 }
@@ -153,12 +155,12 @@ void Navigation::Run() {
   /* Instantiating values related to obstacles and curvature
   ___________________________________________*/
   curvature_Obstacles = populateCurvatureObstacles();
-  produced_curvature = GetOptimalCurvature(ANGLE_INC);
+  produced_curvature = GetOptimalCurvature(CURVATURE_STEP);
   float freePathLength = GetFreePathLength(produced_curvature);
   // colorize();
   // visualization::DrawPathOption(produced_curvature, GetFreePathLength(produced_curvature), ClearanceComputation(produced_curvature), 0x34eb5b, true, local_viz_msg_);
   printf("\nFree path length: %f\n", freePathLength);
-  remaining_dist = freePathLength;
+  dist_remaining = freePathLength;
   // printf("ending\n\n");
   /*
   __________________________________________
@@ -168,7 +170,7 @@ void Navigation::Run() {
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = produced_curvature;
-  drive_msg_.velocity = Navigation::InstantaneousTimeDecision();
+  drive_msg_.velocity = Navigation::GetVelocity(dist_remaining);
   printf("Speed: %f\n", drive_msg_.velocity);
   printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
@@ -185,27 +187,22 @@ void Navigation::Run() {
   // printf("Total time for funtion run: %f\n", t_end - t_start);
 }
 
-//Handling Time Optimal Control with latency adjustments
-float Navigation::InstantaneousTimeDecision(){
-  float remaining_dist_latency_accomodated = remaining_dist - prev_velocity * 0.3;
-  float velocity_req = prev_velocity+MAX_ACC*0.05;
-  if(prev_velocity<MAX_VEL && remaining_dist_latency_accomodated > -pow(std::min(MAX_VEL, velocity_req), 2)/(2*MAX_DEC)){
-    float calc_vel = MAX_ACC * 0.05 + prev_velocity;
-    return std::min(calc_vel, MAX_VEL);
-  }
-  else if(prev_velocity==MAX_VEL && remaining_dist_latency_accomodated > -pow(MAX_VEL, 2)/(2*MAX_DEC)){
-    return prev_velocity;
-  }
-  else{
-    float decel;
-    if(remaining_dist_latency_accomodated<0){
-      decel = MAX_DEC;
-    } else {
-      decel = (-1 * pow(prev_velocity, 2) / (2*remaining_dist_latency_accomodated));
-    }
-    float decel_adj = std::max(decel,MAX_DEC);
-    float vel = decel_adj * 0.05 + prev_velocity;
-    return std::max(vel, 0.0f);
+// Given the distance remaining, handle time optimal control with latency adjustments and return the required velocity
+float Navigation::GetVelocity(float dist_remaining) {
+  float dist_remaining_latency_accomodated = dist_remaining - prev_velocity * SYSTEM_LATENCY;
+  float velocity_after_accelerating = std::min(MAX_VELOCITY, prev_velocity + MAX_ACCELERATION * TIME_STEP); // Capped at max velocity
+  float dist_traversed_while_decelerating = abs(pow(velocity_after_accelerating, 2) / (2 * MAX_DECELERATION));
+  // Accelerate if not at max speed, and there is distance left
+  if(prev_velocity < MAX_VELOCITY && dist_remaining_latency_accomodated > dist_traversed_while_decelerating)
+    return velocity_after_accelerating;
+  // Cruise if at max speed, and there is distance left
+  else if(prev_velocity == MAX_VELOCITY && dist_remaining_latency_accomodated > dist_traversed_while_decelerating)
+    return MAX_VELOCITY;
+  // Decelerate if not enough distance left
+  else {
+    float required_deceleration = -1 * (pow(prev_velocity, 2) / (2 * dist_remaining_latency_accomodated));
+    float deceleration = std::max(MAX_DECELERATION, required_deceleration);
+    return prev_velocity + deceleration * TIME_STEP;
   }
 }
 
@@ -411,20 +408,20 @@ vector<Vector2f> Navigation::getObstacleForCurvature(float curvature){
 
 vector<vector<Vector2f>> Navigation::populateCurvatureObstacles(){
   vector<vector<Vector2f>> obstacle_curvature_store;
-  for(float i=-1.0; i<1.0; i+=ANGLE_INC){
+  for(float i=-1.0; i<1.0; i+=CURVATURE_STEP){
     obstacle_curvature_store.push_back(getObstacleForCurvature(i));
   }
   return obstacle_curvature_store;
 }
 
 int Navigation::getIndexFromCurvature(float curvature){
-  return round((curvature + 1) * (1/ANGLE_INC)); 
+  return round((curvature + 1) * (1/CURVATURE_STEP)); 
 }
 
 void Navigation::colorize(){
   vector<int> colors = {0xeb4034, 0xfcba03, 0x34eb5f, 0x34eb5f, 0xeb34e5, 0x73fc03, 0x03fcf0, 0x6bfc03, 0x03fc8c, 0xc603fc};
   int colorPaths = 0xb734eb;
-  for(float j=-1.0; j<1.0; j+=ANGLE_INC){
+  for(float j=-1.0; j<1.0; j+=CURVATURE_STEP){
     vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(j)];
     for (int i=0; i<(int)obstacles.size(); i++){
       visualization::DrawPoint(obstacles[i], colorPaths/*colors[getIndexFromCurvature(j)%5]*/, local_viz_msg_);
@@ -435,7 +432,7 @@ void Navigation::colorize(){
 
 // void Navigation::printObstacleList(){
 //   printf("\n\n");
-//   for(float j=-1.0; j<1.0; j+=ANGLE_INC){
+//   for(float j=-1.0; j<1.0; j+=CURVATURE_STEP){
 //     vector<Vector2f> obstacles = curvature_Obstacles[getIndexFromCurvature(j)];
 //     printf("Obstacle list for curvature %f\n", j);
 //     for (int i=0; i<(int)obstacles.size(); i++){
