@@ -240,8 +240,8 @@ void ParticleFilter::Initialize(const string& map_file,
   // was received from the log. Initialize the particles accordingly, e.g. with
   // some distribution around the provided location and angle.
   printf("Initial Loc is (%f, %f) and initial angle is %f", loc[0], loc[1], angle);
-  prev_odom_loc_= Vector2f(-0.230723, 1.720467);
-  prev_odom_angle_ = 1.29;
+  prev_odom_loc_= Vector2f(-3.652472, -0.013357);
+  prev_odom_angle_ = -1.081980;
   odom_initialized_ = true;
 
   particles_.clear();
