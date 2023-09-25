@@ -188,77 +188,96 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     odom_initialized_ = true;
   }
 
-  // for(int i=0; i<FLAGS_num_particles; i++){
-  //   Particle currentParticle = particles_.at(i);
-
-  //   Eigen::Matrix3f t1Matrix;
-  //   Eigen::Rotation2Df t1Angle(prev_odom_angle_);
-  //   Eigen::Matrix3f t1RotationMatrix = t1Angle.toRotationMatrix();
-  //   t1Matrix << t1RotationMatrix(0,0), t1RotationMatrix(0,1), prev_odom_loc_[0],
-  //   t1RotationMatrix(1,0), t1RotationMatrix(1,1), prev_odom_loc_[1],
-  //   0, 0, 1;
-  //   Eigen::Matrix3f t1InverseMatrix = t1Matrix.inverse();
-
-  //   Eigen::Matrix3f t2Matrix;
-  //   Eigen::Rotation2Df t2Angle(odom_angle);
-  //   Eigen::Matrix3f t2RotationMatrix = t2Angle.toRotationMatrix();
-  //   t2Matrix << t2RotationMatrix(0,0), t2RotationMatrix(0,1), odom_loc[0],
-  //   t2RotationMatrix(1,0), t1RotationMatrix(1,1), odom_loc[1],
-  //   0, 0, 1;
-
-  //   Eigen::Matrix3f solutionMatrix = t1InverseMatrix * t2Matrix;
-    
-
-  // }
-
-  printf("Odom Angle %f and Odom Loc (%f, %f)\n", odom_angle, odom_loc[0], odom_loc[1]);
-
   for(int i=0; i<FLAGS_num_particles; i++){
-    Particle particleInit = particles_.at(i);
+    Particle currentParticle = particles_.at(i);
 
-    Eigen::Rotation2Df r1(prev_odom_angle_);
-    Eigen::Matrix2f m1 = r1.toRotationMatrix();
-    // printf("Prev Odom Angle %f\n", prev_odom_angle_);
-    Eigen::Matrix3f aRobotT1Matrix;
-    aRobotT1Matrix << m1(0,0), m1(0,1), prev_odom_loc_[0],
-      m1(1,0), m1(1,1), prev_odom_loc_[1],
-      0, 0, 1;
+    Eigen::Matrix3f t1Matrix;
+    Eigen::Rotation2Df t1Angle(prev_odom_angle_);
+    Eigen::Matrix2f t1RotationMatrix = t1Angle.toRotationMatrix();
+    t1Matrix << t1RotationMatrix(0,0), t1RotationMatrix(0,1), prev_odom_loc_[0],
+    t1RotationMatrix(1,0), t1RotationMatrix(1,1), prev_odom_loc_[1],
+    0, 0, 1;
+    Eigen::Matrix3f t1InverseMatrix = t1Matrix.inverse();
 
-    Eigen::Rotation2Df r2(odom_angle);
-    Eigen::Matrix2f m2 = r2.toRotationMatrix();
-    // printf("Odom Angle %f\n", odom_angle);
-    Eigen::Matrix3f aRobotT2Matrix;
-    aRobotT2Matrix << m2(0,0), m2(0,1), odom_loc[0],
-      m2(1,0), m2(1,1), odom_loc[1],
-      0, 0, 1;
-    // printf("T1 Matrix\n");
-    cout << "\nt1 matrix:\n" <<  aRobotT1Matrix << endl;
+    Eigen::Matrix3f t2Matrix;
+    Eigen::Rotation2Df t2Angle(odom_angle);
+    Eigen::Matrix2f t2RotationMatrix = t2Angle.toRotationMatrix();
+    t2Matrix << t2RotationMatrix(0,0), t2RotationMatrix(0,1), odom_loc[0],
+    t2RotationMatrix(1,0), t1RotationMatrix(1,1), odom_loc[1],
+    0, 0, 1;
 
-    // printf("T2 Matrix\n");
-    cout << "\nt2 matrix:\n" << aRobotT2Matrix << endl;
-
-    Eigen::Matrix3f inverseT1 = aRobotT1Matrix.inverse();
-    Eigen::Matrix3f resultantMatrix = manualMatrixMultiply(inverseT1, aRobotT2Matrix);
-    // printf("Resultant Matrix\n");
-    cout << "\nfinal showing :\n" << resultantMatrix << endl;
-    // printf("what is this value: %f", resultantMatrix(0,2));
-    printf("Delta x: %f, Delta y: %f\n", resultantMatrix(0,2), resultantMatrix(1,2));
-
-    printf("Calculated Delta y: %f\n", inverseT1(1,0)*aRobotT2Matrix(0,2) + inverseT1(1,1)*aRobotT2Matrix(1,2) + inverseT1(1,2)*aRobotT2Matrix(2,2));
+    Eigen::Matrix3f t1MapMatrix;
+    Eigen::Rotation2Df t1MapAngle(currentParticle.angle);
+    Eigen::Matrix2f t1MapRotationMatrix = t1MapAngle.toRotationMatrix();
+    t1MapMatrix << t1MapRotationMatrix(0,0), t1MapRotationMatrix(0,1), currentParticle.loc[0],
+    t1MapRotationMatrix(1,0), t1MapRotationMatrix(1,1), currentParticle.loc[1],
+    0, 0, 1;
     
-    float deltaX = resultantMatrix(0, 2);
-    float deltaY = resultantMatrix(1, 2);
-    float deltaTheta = odom_angle - prev_odom_angle_;
 
+    Eigen::Matrix3f solutionMatrix = t1MapMatrix * t1InverseMatrix * t2Matrix;
+
+    float deltaX = solutionMatrix(0,2);
+    float deltaY = solutionMatrix(1,2);
+    float deltaTheta = odom_angle - prev_odom_angle_;
+    
     float epsilonX = 0;//rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
     float epsilonY = 0;//rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
     float epsilonTheta = 0;//rng_.Gaussian(0, K_3 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_4 * abs(deltaTheta));
 
-    particleInit.loc[0] += epsilonX + deltaX;
-    particleInit.loc[1] += epsilonY + deltaY;
-    particleInit.angle += epsilonTheta + deltaTheta;
-    particles_[i] = particleInit; // Maybe don't need this
+    currentParticle.loc[0] = deltaX + epsilonX;
+    currentParticle.loc[1] = deltaY + epsilonY;
+    currentParticle.angle += deltaTheta + epsilonTheta;
+
+    particles_[i] = currentParticle;
+
   }
+
+
+  printf("Odom Angle %f and Odom Loc (%f, %f)\n", odom_angle, odom_loc[0], odom_loc[1]);
+
+  // for(int i=0; i<FLAGS_num_particles; i++){
+  //   Particle particleInit = particles_.at(i);
+
+  //   Eigen::Rotation2Df r1(prev_odom_angle_);
+  //   Eigen::Matrix2f m1 = r1.toRotationMatrix();
+  //   // printf("Prev Odom Angle %f\n", prev_odom_angle_);
+  //   Eigen::Matrix3f aRobotT1Matrix;
+  //   aRobotT1Matrix << m1(0,0), m1(0,1), prev_odom_loc_[0],
+  //     m1(1,0), m1(1,1), prev_odom_loc_[1],
+  //     0, 0, 1;
+
+  //   Eigen::Rotation2Df r2(odom_angle);
+  //   Eigen::Matrix2f m2 = r2.toRotationMatrix();
+  //   // printf("Odom Angle %f\n", odom_angle);
+  //   Eigen::Matrix3f aRobotT2Matrix;
+  //   aRobotT2Matrix << m2(0,0), m2(0,1), odom_loc[0],
+  //     m2(1,0), m2(1,1), odom_loc[1],
+  //     0, 0, 1;
+  //   // printf("T1 Matrix\n");
+  //   cout << "\nt1 matrix:\n" <<  aRobotT1Matrix << endl;
+
+  //   // printf("T2 Matrix\n");
+  //   cout << "\nt2 matrix:\n" << aRobotT2Matrix << endl;
+
+  //   Eigen::Matrix3f inverseT1 = aRobotT1Matrix.inverse();
+  //   Eigen::Matrix3f resultantMatrix = manualMatrixMultiply(inverseT1, aRobotT2Matrix);
+  //   // printf("Resultant Matrix\n");
+  //   cout << "\nfinal showing :\n" << resultantMatrix << endl;
+  //   // printf("what is this value: %f", resultantMatrix(0,2));
+  //   printf("Delta x: %f, Delta y: %f\n", resultantMatrix(0,2), resultantMatrix(1,2));
+
+  //   printf("Calculated Delta y: %f\n", inverseT1(1,0)*aRobotT2Matrix(0,2) + inverseT1(1,1)*aRobotT2Matrix(1,2) + inverseT1(1,2)*aRobotT2Matrix(2,2));
+    
+  //   float deltaX = resultantMatrix(0, 2);
+  //   float deltaY = resultantMatrix(1, 2);
+  //   float deltaTheta = odom_angle - prev_odom_angle_;
+
+    
+  //   particleInit.loc[0] += epsilonX + deltaX;
+  //   particleInit.loc[1] += epsilonY + deltaY;
+  //   particleInit.angle += epsilonTheta + deltaTheta;
+  //   particles_[i] = particleInit; // Maybe don't need this
+  // }
 
   prev_odom_angle_ = odom_angle;
   prev_odom_loc_ = odom_loc;
