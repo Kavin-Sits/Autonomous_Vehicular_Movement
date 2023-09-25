@@ -218,7 +218,7 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     // printf("Resultant Matrix\n");
     // cout << "\nfinal showing :\n" << resultantMatrix << endl;
     // printf("what is this value: %f", resultantMatrix(0,2));
-    // printf("%f, %f\n", resultantMatrix(0,2), resultantMatrix(1,2));
+    printf("Delta x: %f, Delta y: %f\n", resultantMatrix(0,2), resultantMatrix(1,2));
     
     float deltaX = resultantMatrix(0, 2);
     float deltaY = resultantMatrix(1, 2);
