@@ -188,6 +188,29 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     odom_initialized_ = true;
   }
 
+  // for(int i=0; i<FLAGS_num_particles; i++){
+  //   Particle currentParticle = particles_.at(i);
+
+  //   Eigen::Matrix3f t1Matrix;
+  //   Eigen::Rotation2Df t1Angle(prev_odom_angle_);
+  //   Eigen::Matrix3f t1RotationMatrix = t1Angle.toRotationMatrix();
+  //   t1Matrix << t1RotationMatrix(0,0), t1RotationMatrix(0,1), prev_odom_loc_[0],
+  //   t1RotationMatrix(1,0), t1RotationMatrix(1,1), prev_odom_loc_[1],
+  //   0, 0, 1;
+  //   Eigen::Matrix3f t1InverseMatrix = t1Matrix.inverse();
+
+  //   Eigen::Matrix3f t2Matrix;
+  //   Eigen::Rotation2Df t2Angle(odom_angle);
+  //   Eigen::Matrix3f t2RotationMatrix = t2Angle.toRotationMatrix();
+  //   t2Matrix << t2RotationMatrix(0,0), t2RotationMatrix(0,1), odom_loc[0],
+  //   t2RotationMatrix(1,0), t1RotationMatrix(1,1), odom_loc[1],
+  //   0, 0, 1;
+
+  //   Eigen::Matrix3f solutionMatrix = t1InverseMatrix * t2Matrix;
+    
+
+  // }
+
   printf("Odom Angle %f and Odom Loc (%f, %f)\n", odom_angle, odom_loc[0], odom_loc[1]);
 
   for(int i=0; i<FLAGS_num_particles; i++){
@@ -211,12 +234,6 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     // printf("T1 Matrix\n");
     cout << "\nt1 matrix:\n" <<  aRobotT1Matrix << endl;
 
-    Eigen::Matrix3f sampleMatrix;
-    sampleMatrix << 0.619409, -0.785068,  -7.45897,
- 0.785068,  0.619409,   5.33844,
-        0,         0,         1;
-    cout << "inverse of matrix we need:" << sampleMatrix.inverse() << endl;
-
     // printf("T2 Matrix\n");
     cout << "\nt2 matrix:\n" << aRobotT2Matrix << endl;
 
@@ -226,6 +243,8 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     cout << "\nfinal showing :\n" << resultantMatrix << endl;
     // printf("what is this value: %f", resultantMatrix(0,2));
     printf("Delta x: %f, Delta y: %f\n", resultantMatrix(0,2), resultantMatrix(1,2));
+
+    printf("Calculated Delta y: %f\n", inverseT1(1,0)*aRobotT2Matrix(0,2) + inverseT1(1,1)*aRobotT2Matrix(1,2) + inverseT1(1,2)*aRobotT2Matrix(2,2));
     
     float deltaX = resultantMatrix(0, 2);
     float deltaY = resultantMatrix(1, 2);
