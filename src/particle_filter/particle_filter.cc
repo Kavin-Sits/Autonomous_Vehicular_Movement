@@ -182,31 +182,37 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
   // Sample errors ex, ey, ethetha from normal distributions
   // Add errors to the particle pose
 
+  printf("Odom Angle %f and Odom Loc (%f, %f)\n", odom_angle, odom_loc[0], odom_loc[1]);
+
   for(int i=0; i<FLAGS_num_particles; i++){
     Particle particleInit = particles_.at(i);
 
-    printf("Prev Odom Angle %f\n", prev_odom_angle_);
+    Eigen::Rotation2Df r1(prev_odom_angle_);
+    Eigen::Matrix2f m1 = r1.toRotationMatrix();
+    // printf("Prev Odom Angle %f\n", prev_odom_angle_);
     Eigen::Matrix3d aRobotT1Matrix;
-    aRobotT1Matrix << cos(prev_odom_angle_), -sin(prev_odom_angle_), prev_odom_loc_[0],
-      sin(prev_odom_angle_), cos(prev_odom_angle_), prev_odom_loc_[1],
+    aRobotT1Matrix << m1(0,0), m1(0,1), prev_odom_loc_[0],
+      m1(1,0), m1(1,1), prev_odom_loc_[1],
       0, 0, 1;
 
-    printf("Odom Angle %f\n", odom_angle);
+    Eigen::Rotation2Df r2(odom_angle);
+    Eigen::Matrix2f m2 = r2.toRotationMatrix();
+    // printf("Odom Angle %f\n", odom_angle);
     Eigen::Matrix3d aRobotT2Matrix;
-    aRobotT2Matrix << cos(odom_angle), -sin(odom_angle), odom_loc[0],
-      sin(odom_angle), cos(odom_angle), odom_loc[1],
+    aRobotT2Matrix << m2(0,0), m2(0,1), odom_loc[0],
+      m2(0,0), m2(0,1), odom_loc[1],
       0, 0, 1;
-    printf("T1 Matrix\n");
-    cout << aRobotT1Matrix << endl;
+    // printf("T1 Matrix\n");
+    // cout << "\nt1 matrix:\n" <<  aRobotT1Matrix << endl;
 
-    printf("T2 Matrix\n");
-    cout << aRobotT2Matrix << endl;
+    // printf("T2 Matrix\n");
+    // cout << "\nt2 matrix:\n" << aRobotT2Matrix << endl;
 
     Eigen::Matrix3d resultantMatrix = aRobotT1Matrix.inverse() * aRobotT2Matrix;
-    printf("Resultant Matrix\n");
-    cout << resultantMatrix << endl;
+    // printf("Resultant Matrix\n");
+    // cout << "\nfinal showing :\n" << resultantMatrix << endl;
     // printf("what is this value: %f", resultantMatrix(0,2));
-    printf("%f, %f\n", resultantMatrix(0,2), resultantMatrix(1,2));
+    // printf("%f, %f\n", resultantMatrix(0,2), resultantMatrix(1,2));
     
     float deltaX = resultantMatrix(0, 2);
     float deltaY = resultantMatrix(1, 2);
@@ -216,11 +222,14 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     float epsilonY = rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
     float epsilonTheta = rng_.Gaussian(0, K_3 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_4 * abs(deltaTheta));
 
-    particleInit.loc[0] += epsilonX;
-    particleInit.loc[1] += epsilonY;
-    particleInit.angle += epsilonTheta;
-    // particles_[i] = particleInit; // Maybe don't need this
+    particleInit.loc[0] += epsilonX + deltaX;
+    particleInit.loc[1] += epsilonY + deltaY;
+    particleInit.angle += epsilonTheta + deltaTheta;
+    particles_[i] = particleInit; // Maybe don't need this
   }
+
+  prev_odom_angle_ = odom_angle;
+  prev_odom_loc_ = odom_loc;
 
 }
 
