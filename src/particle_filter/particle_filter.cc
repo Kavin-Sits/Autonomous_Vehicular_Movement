@@ -216,16 +216,19 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
 
     Eigen::Matrix3f solutionMatrix = t1MapMatrix * t1InverseMatrix * t2Matrix;
 
-    float deltaX = solutionMatrix(0,2);
-    float deltaY = solutionMatrix(1,2);
+    float mapX = solutionMatrix(0,2);
+    float mapY = solutionMatrix(1,2);
+    float deltaX = mapX - currentParticle.loc[0];
+    float deltaY = mapY - currentParticle.loc[1];
     float deltaTheta = odom_angle - prev_odom_angle_;
-    
-    float epsilonX = 0;//rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
-    float epsilonY = 0;//rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
-    float epsilonTheta = 0;//rng_.Gaussian(0, K_3 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_4 * abs(deltaTheta));
 
-    currentParticle.loc[0] = deltaX + epsilonX;
-    currentParticle.loc[1] = deltaY + epsilonY;
+    
+    float epsilonX = rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
+    float epsilonY = rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
+    float epsilonTheta = rng_.Gaussian(0, K_3 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_4 * abs(deltaTheta));
+
+    currentParticle.loc[0] += deltaX + epsilonX;
+    currentParticle.loc[1] += deltaY + epsilonY;
     currentParticle.angle += deltaTheta + epsilonTheta;
 
     particles_[i] = currentParticle;
@@ -282,19 +285,6 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
   prev_odom_angle_ = odom_angle;
   prev_odom_loc_ = odom_loc;
 
-}
-
-Eigen::Matrix3f ParticleFilter::manualMatrixMultiply(const Eigen::Matrix3f& A, const Eigen::Matrix3f& B) {
-    Eigen::Matrix3f C;
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            C(i, j) = 0.0f;  // initialize the value
-            for (int k = 0; k < 3; ++k) {
-                C(i, j) += A(i, k) * B(k, j);
-            }
-        }
-    }
-    return C;
 }
 
 void ParticleFilter::Initialize(const string& map_file,
