@@ -206,7 +206,7 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     // printf("Odom Angle %f\n", odom_angle);
     Eigen::Matrix3d aRobotT2Matrix;
     aRobotT2Matrix << m2(0,0), m2(0,1), odom_loc[0],
-      m2(0,0), m2(0,1), odom_loc[1],
+      m2(1,0), m2(1,1), odom_loc[1],
       0, 0, 1;
     // printf("T1 Matrix\n");
     cout << "\nt1 matrix:\n" <<  aRobotT1Matrix << endl;
