@@ -196,7 +196,7 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     Eigen::Rotation2Df r1(prev_odom_angle_);
     Eigen::Matrix2f m1 = r1.toRotationMatrix();
     // printf("Prev Odom Angle %f\n", prev_odom_angle_);
-    Eigen::Matrix3d aRobotT1Matrix;
+    Eigen::Matrix3f aRobotT1Matrix;
     aRobotT1Matrix << m1(0,0), m1(0,1), prev_odom_loc_[0],
       m1(1,0), m1(1,1), prev_odom_loc_[1],
       0, 0, 1;
@@ -204,17 +204,24 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     Eigen::Rotation2Df r2(odom_angle);
     Eigen::Matrix2f m2 = r2.toRotationMatrix();
     // printf("Odom Angle %f\n", odom_angle);
-    Eigen::Matrix3d aRobotT2Matrix;
+    Eigen::Matrix3f aRobotT2Matrix;
     aRobotT2Matrix << m2(0,0), m2(0,1), odom_loc[0],
       m2(1,0), m2(1,1), odom_loc[1],
       0, 0, 1;
     // printf("T1 Matrix\n");
     cout << "\nt1 matrix:\n" <<  aRobotT1Matrix << endl;
 
+    Eigen::Matrix3f sampleMatrix;
+    sampleMatrix << 0.619409, -0.785068,  -7.45897,
+ 0.785068,  0.619409,   5.33844,
+        0,         0,         1;
+    cout << "inverse of matrix we need:" << sampleMatrix.inverse() << endl;
+
     // printf("T2 Matrix\n");
     cout << "\nt2 matrix:\n" << aRobotT2Matrix << endl;
 
-    Eigen::Matrix3d resultantMatrix = aRobotT1Matrix.inverse() * aRobotT2Matrix;
+    Eigen::Matrix3f inverseT1 = aRobotT1Matrix.inverse();
+    Eigen::Matrix3f resultantMatrix = inverseT1 * aRobotT2Matrix;
     // printf("Resultant Matrix\n");
     cout << "\nfinal showing :\n" << resultantMatrix << endl;
     // printf("what is this value: %f", resultantMatrix(0,2));
