@@ -224,9 +224,9 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     float deltaY = resultantMatrix(1, 2);
     float deltaTheta = odom_angle - prev_odom_angle_;
 
-    float epsilonX = rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
-    float epsilonY = rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
-    float epsilonTheta = rng_.Gaussian(0, K_3 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_4 * abs(deltaTheta));
+    float epsilonX = 0;//rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
+    float epsilonY = 0;//rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
+    float epsilonTheta = 0;//rng_.Gaussian(0, K_3 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_4 * abs(deltaTheta));
 
     particleInit.loc[0] += epsilonX + deltaX;
     particleInit.loc[1] += epsilonY + deltaY;
