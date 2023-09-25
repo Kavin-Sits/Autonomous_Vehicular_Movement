@@ -181,6 +181,12 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
   // Update particle pose by movement change
   // Sample errors ex, ey, ethetha from normal distributions
   // Add errors to the particle pose
+  if(!odom_initialized_){
+    printf("Odom Angle %f and Odom Loc (%f, %f)\n", odom_angle, odom_loc[0], odom_loc[1]);
+    prev_odom_angle_ = odom_angle;
+    prev_odom_loc_ = odom_loc;
+    odom_initialized_ = true;
+  }
 
   printf("Odom Angle %f and Odom Loc (%f, %f)\n", odom_angle, odom_loc[0], odom_loc[1]);
 
@@ -240,9 +246,10 @@ void ParticleFilter::Initialize(const string& map_file,
   // was received from the log. Initialize the particles accordingly, e.g. with
   // some distribution around the provided location and angle.
   printf("Initial Loc is (%f, %f) and initial angle is %f", loc[0], loc[1], angle);
-  prev_odom_loc_= Vector2f(-3.652472, -0.013357);
-  prev_odom_angle_ = -1.081980;
-  odom_initialized_ = true;
+  prev_odom_loc_= Vector2f(0, 0);
+  prev_odom_angle_ = 0;
+  // odom_initialized_ = true;
+  odom_initialized_ = false;
 
   particles_.clear();
   
