@@ -216,7 +216,7 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
 
     Eigen::Matrix3d resultantMatrix = aRobotT1Matrix.inverse() * aRobotT2Matrix;
     // printf("Resultant Matrix\n");
-    // cout << "\nfinal showing :\n" << resultantMatrix << endl;
+    cout << "\nfinal showing :\n" << resultantMatrix << endl;
     // printf("what is this value: %f", resultantMatrix(0,2));
     printf("Delta x: %f, Delta y: %f\n", resultantMatrix(0,2), resultantMatrix(1,2));
     
