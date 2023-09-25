@@ -157,7 +157,7 @@ void Navigation::Run() {
   float freePathLength = GetFreePathLength(produced_curvature);
   // colorize();
   // visualization::DrawPathOption(produced_curvature, GetFreePathLength(produced_curvature), ClearanceComputation(produced_curvature), 0x34eb5b, true, local_viz_msg_);
-  printf("\nFree path length: %f\n", freePathLength);
+  // printf("\nFree path length: %f\n", freePathLength);
   remaining_dist = freePathLength;
   // printf("ending\n\n");
   /*
@@ -169,8 +169,8 @@ void Navigation::Run() {
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = produced_curvature;
   drive_msg_.velocity = Navigation::InstantaneousTimeDecision();
-  printf("Speed: %f\n", drive_msg_.velocity);
-  printf("Curvature: %f\n", drive_msg_.curvature);
+  // printf("Speed: %f\n", drive_msg_.velocity);
+  // printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
 
   // Add timestamps to all messages.

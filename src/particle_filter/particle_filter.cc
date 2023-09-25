@@ -48,6 +48,13 @@ using vector_map::VectorMap;
 
 DEFINE_double(num_particles, 50, "Number of particles");
 
+namespace {
+  const float K_1 = 0.05;
+  const float K_2 = 0.05;
+  const float K_3 = 0.05;
+  const float K_4 = 0.05;
+}
+
 namespace particle_filter {
 
 config_reader::ConfigReader config_reader_({"config/particle_filter.lua"});
@@ -161,13 +168,39 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
   // Implement the motion model predict step here, to propagate the particles
   // forward based on odometry.
 
-
   // You will need to use the Gaussian random number generator provided. For
   // example, to generate a random number from a Gaussian with mean 0, and
   // standard deviation 2:
-  float x = rng_.Gaussian(0.0, 2.0);
-  printf("Random number drawn from Gaussian distribution with 0 mean and "
-         "standard deviation of 2 : %f\n", x);
+  // float deltaX = odom_loc[0] - prev_odom_loc_[0];
+  // float deltaY = odom_loc[1] - prev_odom_loc_[1];
+  // float deltaTheta = odom_angle - prev_odom_angle_;
+
+  // float epsilonXorY = rng_.Gaussian(0, K_1 * sqrt(deltaX * deltaX + deltaY * deltaY) + K_2 * abs(deltaTheta));
+  // float epsilonTheta = rng_.Gaussian(0, K_3 * sqrt(deltaX * deltaX + deltaY * deltaY) + K_4 * abs(deltaTheta));
+
+  // Update particle pose by movement change
+  // Sample errors ex, ey, ethetha from normal distributions
+  // Add errors to the particle pose
+
+  for(int i=0; i<FLAGS_num_particles; i++){
+    Particle particleInit = particles_.at(i);
+    Eigen::Matrix3f aRobotT1Matrix;
+    aRobotT1Matrix << cos(prev_odom_angle_), -sin(prev_odom_angle_), prev_odom_loc_[0],
+      sin(prev_odom_angle_), cos(prev_odom_angle_), prev_odom_loc_[1],
+      0, 0, 1;
+
+    Eigen::Matrix3f aRobotT2Matrix;
+    aRobotT2Matrix << cos(odom_angle), -sin(odom_angle), odom_loc[0],
+      sin(odom_angle), cos(odom_angle), odom_loc[1],
+      0, 0, 1;
+
+    Eigen::Matrix3f resultantMatrix = aRobotT1Matrix.inverse() * aRobotT2Matrix;
+    // printf("what is this value: %f", resultantMatrix(0,2));
+    particleInit.loc[0] += resultantMatrix(0,2);
+    // particleInit.loc[1] += resultantMatrix(1,2);
+    particles_[i] = particleInit;
+  }
+
 }
 
 void ParticleFilter::Initialize(const string& map_file,
@@ -176,7 +209,24 @@ void ParticleFilter::Initialize(const string& map_file,
   // The "set_pose" button on the GUI was clicked, or an initialization message
   // was received from the log. Initialize the particles accordingly, e.g. with
   // some distribution around the provided location and angle.
+  printf("Initial Loc is (%f, %f) and initial angle is %f", loc[0], loc[1], angle);
+  prev_odom_loc_= Vector2f(0, 0);
+  prev_odom_angle_ = 0;
+  odom_initialized_ = true;
+
+  particles_.clear();
+  
+  for(int i=0; i<FLAGS_num_particles; i++){
+    float x = rng_.Gaussian(loc[0], 0.01);
+    float y = rng_.Gaussian(loc[1], 0.01);
+    float theta = rng_.Gaussian(angle, 0.01);
+    Particle p = {Vector2f(x,y), theta, 1};
+    particles_.push_back(p);
+  }
+
   map_.Load(map_file);
+
+  //don't need the map for cp3
 }
 
 void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr, 
@@ -186,8 +236,16 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   // Compute the best estimate of the robot's location based on the current set
   // of particles. The computed values must be set to the `loc` and `angle`
   // variables to return them. Modify the following assignments:
-  loc = Vector2f(0, 0);
-  angle = 0;
+  float xsum = 0;
+  float ysum = 0;
+  float angleSum = 0;
+  for(int i=0; i<FLAGS_num_particles; i++){
+    xsum+=particles_[i].loc[0];
+    ysum+=particles_[i].loc[1];
+    angleSum+=particles_[i].angle;
+  }
+  loc = Vector2f(xsum / FLAGS_num_particles, ysum / FLAGS_num_particles);
+  angle = angleSum / FLAGS_num_particles;
 }
 
 
