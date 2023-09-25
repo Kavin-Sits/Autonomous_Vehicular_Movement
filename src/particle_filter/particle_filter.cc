@@ -49,10 +49,10 @@ using vector_map::VectorMap;
 DEFINE_double(num_particles, 50, "Number of particles");
 
 namespace {
-  const float K_1 = 0.01;
-  const float K_2 = 0.01;
-  const float K_3 = 0.01;
-  const float K_4 = 0.01;
+  const float K_1 = 0.04;
+  const float K_2 = 0.04;
+  const float K_3 = 0.04;
+  const float K_4 = 0.04;
 }
 
 namespace particle_filter {
