@@ -184,21 +184,42 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
 
   for(int i=0; i<FLAGS_num_particles; i++){
     Particle particleInit = particles_.at(i);
-    Eigen::Matrix3f aRobotT1Matrix;
+
+    printf("Prev Odom Angle %f\n", prev_odom_angle_);
+    Eigen::Matrix3d aRobotT1Matrix;
     aRobotT1Matrix << cos(prev_odom_angle_), -sin(prev_odom_angle_), prev_odom_loc_[0],
       sin(prev_odom_angle_), cos(prev_odom_angle_), prev_odom_loc_[1],
       0, 0, 1;
 
-    Eigen::Matrix3f aRobotT2Matrix;
+    printf("Odom Angle %f\n", odom_angle);
+    Eigen::Matrix3d aRobotT2Matrix;
     aRobotT2Matrix << cos(odom_angle), -sin(odom_angle), odom_loc[0],
       sin(odom_angle), cos(odom_angle), odom_loc[1],
       0, 0, 1;
+    printf("T1 Matrix\n");
+    cout << aRobotT1Matrix << endl;
 
-    Eigen::Matrix3f resultantMatrix = aRobotT1Matrix.inverse() * aRobotT2Matrix;
+    printf("T2 Matrix\n");
+    cout << aRobotT2Matrix << endl;
+
+    Eigen::Matrix3d resultantMatrix = aRobotT1Matrix.inverse() * aRobotT2Matrix;
+    printf("Resultant Matrix\n");
+    cout << resultantMatrix << endl;
     // printf("what is this value: %f", resultantMatrix(0,2));
-    particleInit.loc[0] += resultantMatrix(0,2);
-    // particleInit.loc[1] += resultantMatrix(1,2);
-    particles_[i] = particleInit;
+    printf("%f, %f\n", resultantMatrix(0,2), resultantMatrix(1,2));
+    
+    float deltaX = resultantMatrix(0, 2);
+    float deltaY = resultantMatrix(1, 2);
+    float deltaTheta = odom_angle - prev_odom_angle_;
+
+    float epsilonX = rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
+    float epsilonY = rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
+    float epsilonTheta = rng_.Gaussian(0, K_3 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_4 * abs(deltaTheta));
+
+    particleInit.loc[0] += epsilonX;
+    particleInit.loc[1] += epsilonY;
+    particleInit.angle += epsilonTheta;
+    // particles_[i] = particleInit; // Maybe don't need this
   }
 
 }
@@ -216,7 +237,7 @@ void ParticleFilter::Initialize(const string& map_file,
 
   particles_.clear();
   
-  for(int i=0; i<FLAGS_num_particles; i++){
+  for(int i = 0; i<FLAGS_num_particles; i++){
     float x = rng_.Gaussian(loc[0], 0.01);
     float y = rng_.Gaussian(loc[1], 0.01);
     float theta = rng_.Gaussian(angle, 0.01);
