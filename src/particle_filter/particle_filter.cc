@@ -221,7 +221,7 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     cout << "\nt2 matrix:\n" << aRobotT2Matrix << endl;
 
     Eigen::Matrix3f inverseT1 = aRobotT1Matrix.inverse();
-    Eigen::Matrix3f resultantMatrix = inverseT1 * aRobotT2Matrix;
+    Eigen::Matrix3f resultantMatrix = manualMatrixMultiply(inverseT1, aRobotT2Matrix);
     // printf("Resultant Matrix\n");
     cout << "\nfinal showing :\n" << resultantMatrix << endl;
     // printf("what is this value: %f", resultantMatrix(0,2));
@@ -244,6 +244,19 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
   prev_odom_angle_ = odom_angle;
   prev_odom_loc_ = odom_loc;
 
+}
+
+Eigen::Matrix3f ParticleFilter::manualMatrixMultiply(const Eigen::Matrix3f& A, const Eigen::Matrix3f& B) {
+    Eigen::Matrix3f C;
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            C(i, j) = 0.0f;  // initialize the value
+            for (int k = 0; k < 3; ++k) {
+                C(i, j) += A(i, k) * B(k, j);
+            }
+        }
+    }
+    return C;
 }
 
 void ParticleFilter::Initialize(const string& map_file,

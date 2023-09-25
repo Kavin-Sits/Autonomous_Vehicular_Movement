@@ -55,6 +55,8 @@ class ParticleFilter {
   void ObserveOdometry(const Eigen::Vector2f& odom_loc,
                        const float odom_angle);
 
+  Eigen::Matrix3f manualMatrixMultiply(const Eigen::Matrix3f& A, const Eigen::Matrix3f& B);
+  
   // Initialize the robot location.
   void Initialize(const std::string& map_file,
                   const Eigen::Vector2f& loc,
