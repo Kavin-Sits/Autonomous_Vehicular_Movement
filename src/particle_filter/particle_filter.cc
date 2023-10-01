@@ -64,10 +64,12 @@ ParticleFilter::ParticleFilter() :
     prev_odom_angle_(0),
     odom_initialized_(false) {}
 
+
 void ParticleFilter::GetParticles(vector<Particle>* particles) const {
   *particles = particles_;
 }
 
+//CP4
 void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
                                             const float angle,
                                             int num_ranges,
@@ -76,6 +78,9 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
                                             float angle_min,
                                             float angle_max,
                                             vector<Vector2f>* scan_ptr) {
+  vector<Line2f> lines;
+
+  
   vector<Vector2f>& scan = *scan_ptr;
   // Compute what the predicted point cloud would be, if the car was at the pose
   // loc, angle, with the sensor characteristics defined by the provided
@@ -122,6 +127,29 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
   }
 }
 
+// Observation likelihood function: p(s|x) <-x = predict scan, s= observation
+// s hat = predicted scan
+// gamma of 1/5 to 5?
+
+
+Vector2f ParticleFilter::BaseLinkToMapFrameForPoint(Vector2f loc, Vector2f pLoc, float theta){
+  Eigen::Rotation2Df thetaRotation(theta);
+  Eigen::Matrix2f rot = thetaRotation.toRotationMatrix();
+  Vector2f pWorld = rot * pLoc + pLoc;
+  return pWorld;
+}
+
+Line2f ParticleFilter::BaseLinkToMapFrameForLine(Line2f line, Vector2f pLoc, float theta){
+  Vector2f p0 = Vector2f(line.p0.x(), line.p0.y());
+  Vector2f p1 = Vector2f(line.p1.x(), line.p1.y());
+
+  p0 = BaseLinkToMapFrameForPoint(p0, pLoc, theta);
+  p1 = BaseLinkToMapFrameForPoint(p1, pLoc, theta);
+
+  return Line2f(p0[0], p0[1], p1[0], p1[1]);
+}
+
+//CP4: called for every particle
 void ParticleFilter::Update(const vector<float>& ranges,
                             float range_min,
                             float range_max,
@@ -135,6 +163,7 @@ void ParticleFilter::Update(const vector<float>& ranges,
   // predicted point cloud.
 }
 
+//MS2
 void ParticleFilter::Resample() {
   // Resample the particles, proportional to their weights.
   // The current particles are in the `particles_` variable. 
@@ -153,6 +182,7 @@ void ParticleFilter::Resample() {
          x);
 }
 
+//Loop through particles and call update
 void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float range_min,
                                   float range_max,
@@ -266,10 +296,9 @@ void ParticleFilter::Initialize(const string& map_file,
   }
 
   map_.Load(map_file);
-
-  //don't need the map for cp3
 }
 
+//change to weighted mean
 void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr, 
                                  float* angle_ptr) const {
   Vector2f& loc = *loc_ptr;
@@ -288,6 +317,5 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   loc = Vector2f(xsum / FLAGS_num_particles, ysum / FLAGS_num_particles);
   angle = angleSum / FLAGS_num_particles;
 }
-
 
 }  // namespace particle_filter

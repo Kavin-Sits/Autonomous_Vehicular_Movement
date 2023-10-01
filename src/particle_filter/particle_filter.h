@@ -87,6 +87,10 @@ class ParticleFilter {
                               float angle_max,
                               std::vector<Eigen::Vector2f>* scan);
 
+  Eigen::Vector2f BaseLinkToMapFrameForPoint(Eigen::Vector2f loc, Eigen::Vector2f pLoc, float theta);
+
+  geometry::Line2f BaseLinkToMapFrameForLine(geometry::Line2f line, Eigen::Vector2f pLoc, float theta);
+
  private:
 
   // List of particles being tracked.
@@ -102,6 +106,8 @@ class ParticleFilter {
   Eigen::Vector2f prev_odom_loc_;
   float prev_odom_angle_;
   bool odom_initialized_;
+
+  std::vector<geometry::Line2f> rays;
 };
 }  // namespace slam
 
