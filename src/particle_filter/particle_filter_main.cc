@@ -105,16 +105,16 @@ void InitializeMsgs() {
 void PublishParticles() {
   vector<particle_filter::Particle> particles;
   particle_filter_.GetParticles(&particles);
-  particle_filter::Particle maxParticle;
-  float maxWeight = 0;
+  // particle_filter::Particle maxParticle;
+  // float maxWeight = 0;
   for (const particle_filter::Particle& p : particles) {
     DrawParticleWithColor(p.loc, p.angle, vis_msg_, 0xFF0000);
-    if (p.weight>maxWeight){
-      maxWeight = p.weight;
-      maxParticle = p;
-    }
+    // if (p.weight>maxWeight){
+    //   maxWeight = p.weight;
+    //   maxParticle = p;
+    // }
   }
-  DrawParticleWithColor(maxParticle.loc, maxParticle.angle, vis_msg_, 0x00FF00);
+  // DrawParticleWithColor(maxParticle.loc, maxParticle.angle, vis_msg_, 0x00FF00);
 }
 
 void PublishPredictedScan() {

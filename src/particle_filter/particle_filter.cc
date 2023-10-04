@@ -316,9 +316,9 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     float deltaTheta = odom_angle - prev_odom_angle_;
 
     
-    float epsilonX = rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
-    float epsilonY = rng_.Gaussian(0, K_1 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_2 * abs(deltaTheta));
-    float epsilonTheta = rng_.Gaussian(0, K_3 * sqrt(pow(deltaX, 2) + pow(deltaY, 2)) + K_4 * abs(deltaTheta));
+    float epsilonX = rng_.Gaussian(0, K_1 * sqrt(deltaX * deltaX + deltaY * deltaY) + K_2 * abs(deltaTheta));
+    float epsilonY = rng_.Gaussian(0, K_1 * sqrt(deltaX * deltaX + deltaY * deltaY) + K_2 * abs(deltaTheta));
+    float epsilonTheta = rng_.Gaussian(0, K_3 * sqrt(deltaX * deltaX + deltaY * deltaY) + K_4 * abs(deltaTheta));
 
     currentParticle.loc[0] += deltaX + epsilonX;
     currentParticle.loc[1] += deltaY + epsilonY;
@@ -369,16 +369,27 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   // Compute the best estimate of the robot's location based on the current set
   // of particles. The computed values must be set to the `loc` and `angle`
   // variables to return them. Modify the following assignments:
-  float xsum = 0;
-  float ysum = 0;
-  float angleSum = 0;
-  for(int i=0; i<FLAGS_num_particles; i++){
-    xsum+=particles_[i].loc[0];
-    ysum+=particles_[i].loc[1];
-    angleSum+=particles_[i].angle;
+  // float xsum = 0;
+  // float ysum = 0;
+  // float angleSum = 0;
+  // for(int i=0; i<FLAGS_num_particles; i++){
+  //   xsum+=particles_[i].loc[0];
+  //   ysum+=particles_[i].loc[1];
+  //   angleSum+=particles_[i].angle;
+  // }
+  // loc = Vector2f(xsum / FLAGS_num_particles, ysum / FLAGS_num_particles);
+  // angle = angleSum / FLAGS_num_particles;
+
+  particle_filter::Particle maxParticle = {Vector2f(0,0), 0, 0};
+  float maxWeight = 0;
+  for (const particle_filter::Particle& p : particles_) {
+    if (p.weight>maxWeight){
+      maxWeight = p.weight;
+      maxParticle = p;
+    }
   }
-  loc = Vector2f(xsum / FLAGS_num_particles, ysum / FLAGS_num_particles);
-  angle = angleSum / FLAGS_num_particles;
+  loc = maxParticle.loc;
+  angle = maxParticle.angle;
 }
 
 }  // namespace particle_filter
