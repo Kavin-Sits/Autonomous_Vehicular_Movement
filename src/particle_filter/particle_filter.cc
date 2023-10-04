@@ -380,8 +380,8 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   // loc = Vector2f(xsum / FLAGS_num_particles, ysum / FLAGS_num_particles);
   // angle = angleSum / FLAGS_num_particles;
 
-  particle_filter::Particle maxParticle = {Vector2f(0,0), 0, 0};
-  float maxWeight = 0;
+  particle_filter::Particle maxParticle = particles_[0];
+  float maxWeight = maxParticle.weight;
   for (const particle_filter::Particle& p : particles_) {
     if (p.weight>maxWeight){
       maxWeight = p.weight;
