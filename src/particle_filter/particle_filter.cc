@@ -58,6 +58,7 @@ namespace {
   const float K_4 = 0.2;
   const float rangeSTD = 0.05; //placeholder
   const float gammaP = 0.2; // placeholder
+  const float NUM_RAYS_SKIPPED = 10;
   const Vector2f kLaserLoc(0.2, 0);
 }
 
@@ -91,7 +92,7 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
 
   if(!rays_initialized_ && num_ranges!=0){
     // printf("num ranges: %d\n", num_ranges);
-    for(int i=0; i<num_ranges; i++){
+    for(int i=0; i<num_ranges; i+=NUM_RAYS_SKIPPED){
       float theta = (angle_max-angle_min)/((float) num_ranges) * i + angle_min;
       // Location of the laser on the robot. Assumes the laser is forward-facing.
       Line2f line = Line2f(range_min * cos(theta) + kLaserLoc[0],range_min * sin(theta) + kLaserLoc[1], range_max * cos(theta) + kLaserLoc[0], range_max * sin(theta) + kLaserLoc[1]);
@@ -204,7 +205,7 @@ void ParticleFilter::Update(const vector<float>& ranges,
   // msg.ranges[i] // The range of the i'th ray
   // printf("Max: %f, Min: %f \n", msg.angle_max, msg.angle_min);
   float angle_increment = (range_max-range_min)/ranges.size();
-  for(int i=0; i<(int)ranges.size(); i++){
+  for(int i=0; i<(int)ranges.size(); i+=NUM_RAYS_SKIPPED){
     if (ranges[i]>range_min && ranges[i]<range_max){
       Vector2f point = Vector2f(ranges[i]*cos(angle_increment*i + angle_min)+kLaserLoc[0], ranges[i]*sin(angle_increment*i + angle_min)+kLaserLoc[1]);
       observed_point_cloud_.push_back(point);
