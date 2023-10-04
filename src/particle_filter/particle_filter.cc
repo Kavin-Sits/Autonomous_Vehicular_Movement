@@ -274,7 +274,7 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
   // Sample errors ex, ey, ethetha from normal distributions
   // Add errors to the particle pose
   if(!odom_initialized_){
-    printf("Odom Angle %f and Odom Loc (%f, %f)\n", odom_angle, odom_loc[0], odom_loc[1]);
+    // printf("Odom Angle %f and Odom Loc (%f, %f)\n", odom_angle, odom_loc[0], odom_loc[1]);
     prev_odom_angle_ = odom_angle;
     prev_odom_loc_ = odom_loc;
     odom_initialized_ = true;
