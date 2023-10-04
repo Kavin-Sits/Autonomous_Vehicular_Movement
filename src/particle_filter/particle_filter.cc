@@ -30,9 +30,12 @@
 #include "shared/math/line2d.h"
 #include "shared/math/math_util.h"
 #include "shared/util/timer.h"
+#include "amrl_msgs/Localization2DMsg.h"
+#include "amrl_msgs/VisualizationMsg.h"
 
 #include "config_reader/config_reader.h"
 #include "particle_filter.h"
+#include "visualization/visualization.h"
 
 #include "vector_map/vector_map.h"
 
@@ -53,6 +56,9 @@ namespace {
   const float K_2 = 0.09;
   const float K_3 = 0.09;
   const float K_4 = 0.09;
+  const float rangeSTD = 0.05; //placeholder
+  const float gammaP = 0.2; // placeholder
+  const Vector2f kLaserLoc(0.2, 0);
 }
 
 namespace particle_filter {
@@ -62,7 +68,10 @@ config_reader::ConfigReader config_reader_({"config/particle_filter.lua"});
 ParticleFilter::ParticleFilter() :
     prev_odom_loc_(0, 0),
     prev_odom_angle_(0),
-    odom_initialized_(false) {}
+    odom_initialized_(false),
+    rays_initialized_(false){
+      vis_msg_ = visualization::NewVisualizationMessage("map", "particle_filter");
+    }
 
 
 void ParticleFilter::GetParticles(vector<Particle>* particles) const {
@@ -78,9 +87,31 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
                                             float angle_min,
                                             float angle_max,
                                             vector<Vector2f>* scan_ptr) {
-  vector<Line2f> lines;
 
+
+  if(!rays_initialized_ && num_ranges!=0){
+    // printf("num ranges: %d\n", num_ranges);
+    for(int i=0; i<num_ranges; i++){
+      float theta = (angle_max-angle_min)/((float) num_ranges) * i + angle_min;
+      // Location of the laser on the robot. Assumes the laser is forward-facing.
+      Line2f line = Line2f(range_min * cos(theta) + kLaserLoc[0],range_min * sin(theta) + kLaserLoc[1], range_max * cos(theta) + kLaserLoc[0], range_max * sin(theta) + kLaserLoc[1]);
+      // printf("ray values: (%f, %f) to (%f, %f)\n", line.p0[0], line.p0[1], line.p1[0], line.p1[1]);
+      rays.push_back(line);
+    }
+    rays_initialized_ = true;
+  }
   
+  // printf("printing message %d\n", vis_msg_.ns.at(0));
+  vector<Line2f> raysInMapFrame;
+  visualization::DrawLine(Vector2f(0,0), Vector2f(20,20), 0x0F0F0F, vis_msg_);
+  visualization::DrawPoint(Vector2f(5,5), 0x0F0F0F, vis_msg_);
+  for(Line2f ray: rays){
+    Line2f line = BaseLinkToMapFrameForLine(ray, loc, angle);
+    // printf("line values: (%f, %f) to (%f, %f)\n", line.p0[0], line.p0[1], line.p1[0], line.p1[1]);
+    visualization::DrawLine(line.p0, line.p1, 0x0F0F0F, vis_msg_);
+    raysInMapFrame.push_back(line);
+  }
+
   vector<Vector2f>& scan = *scan_ptr;
   // Compute what the predicted point cloud would be, if the car was at the pose
   // loc, angle, with the sensor characteristics defined by the provided
@@ -97,33 +128,32 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
 
   // The line segments in the map are stored in the `map_.lines` variable. You
   // can iterate through them as:
-  for (size_t i = 0; i < map_.lines.size(); ++i) {
-    /*
-    const Line2f map_line = map_.lines[i];
+  for(int j=0; j<(int)(raysInMapFrame.size()); j++) {
+    Line2f currLine = raysInMapFrame.at(j);
+    float minDistance = range_max;
+    Vector2f closestPt = currLine.p1;
+    for (size_t i = 0; i < map_.lines.size(); ++i) {
+      const Line2f map_line = map_.lines[i];
     // The Line2f class has helper functions that will be useful.
     // You can create a new line segment instance as follows, for :
-    Line2f my_line(1, 2, 3, 4); // Line segment from (1,2) to (3.4).
-    // Access the end points using `.p0` and `.p1` members:
-    printf("P0: %f, %f P1: %f,%f\n", 
-           my_line.p0.x(),
-           my_line.p0.y(),
-           my_line.p1.x(),
-           my_line.p1.y());
+     // Line segment from (1,2) to (3.4).
 
-    // Check for intersections:
-    bool intersects = map_line.Intersects(my_line);
-    // You can also simultaneously check for intersection, and return the point
-    // of intersection:
-    Vector2f intersection_point; // Return variable
-    intersects = map_line.Intersection(my_line, &intersection_point);
-    if (intersects) {
-      printf("Intersects at %f,%f\n", 
-             intersection_point.x(),
-             intersection_point.y());
-    } else {
-      printf("No intersection\n");
+      // Check for intersections:
+      bool intersects = map_line.Intersects(currLine);
+      // You can also simultaneously check for intersection, and return the point
+      // of intersection:
+      Vector2f intersection_point; // Return variable
+      intersects = map_line.Intersection(currLine, &intersection_point);
+      if (intersects) {
+        float intersectDistance = (intersection_point-loc).norm();
+        minDistance = std::min(minDistance,intersectDistance);
+        closestPt = intersection_point;
+        // printf("Intersects at %f,%f\n", intersection_point.x(), intersection_point.y());
+      } else {
+        // printf("No intersection\n");
+      }
     }
-    */
+    scan[j] = closestPt;
   }
 }
 
@@ -132,10 +162,10 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
 // gamma of 1/5 to 5?
 
 
-Vector2f ParticleFilter::BaseLinkToMapFrameForPoint(Vector2f loc, Vector2f pLoc, float theta){
+Vector2f ParticleFilter::BaseLinkToMapFrameForPoint(Vector2f linePt, Vector2f pLoc, float theta){
   Eigen::Rotation2Df thetaRotation(theta);
   Eigen::Matrix2f rot = thetaRotation.toRotationMatrix();
-  Vector2f pWorld = rot * pLoc + pLoc;
+  Vector2f pWorld = rot * linePt + pLoc;
   return pWorld;
 }
 
@@ -143,8 +173,10 @@ Line2f ParticleFilter::BaseLinkToMapFrameForLine(Line2f line, Vector2f pLoc, flo
   Vector2f p0 = Vector2f(line.p0.x(), line.p0.y());
   Vector2f p1 = Vector2f(line.p1.x(), line.p1.y());
 
+  // printf("old p0: (%f, %f) and p1: (%f, %f)\n", line.p0.x(), line.p0.y(), line.p1.x(), line.p1.y());
   p0 = BaseLinkToMapFrameForPoint(p0, pLoc, theta);
   p1 = BaseLinkToMapFrameForPoint(p1, pLoc, theta);
+  // printf("new p0: (%f, %f) and p1: (%f, %f)\n", p0.x(), p0.y(), p1.x(), p1.y());
 
   return Line2f(p0[0], p0[1], p1[0], p1[1]);
 }
@@ -161,6 +193,33 @@ void ParticleFilter::Update(const vector<float>& ranges,
   // observations for each particle, and assign weights to the particles based
   // on the observation likelihood computed by relating the observation to the
   // predicted point cloud.
+
+  vector<Vector2f> observed_point_cloud_;
+  // The LaserScan parameters are accessible as follows:
+  // msg.angle_increment // Angular increment between subsequent rays
+  // msg.angle_max // Angle of the last ray
+  // msg.angle_min // Angle of the first ray
+  // msg.range_max // Maximum observable range
+  // msg.range_min // Minimum observable range
+  // msg.ranges[i] // The range of the i'th ray
+  // printf("Max: %f, Min: %f \n", msg.angle_max, msg.angle_min);
+  float angle_increment = (range_max-range_min)/ranges.size();
+  for(int i=0; i<(int)ranges.size(); i++){
+    if (ranges[i]>range_min && ranges[i]<range_max){
+      Vector2f point = Vector2f(ranges[i]*cos(angle_increment*i + angle_min)+kLaserLoc[0], ranges[i]*sin(angle_increment*i + angle_min)+kLaserLoc[1]);
+      observed_point_cloud_.push_back(point);
+    }
+  }
+  
+  vector<Vector2f> predictedPtCloud;
+  GetPredictedPointCloud(p_ptr->loc, p_ptr->angle, ranges.size(), range_min, range_max, angle_min, angle_max, &predictedPtCloud);
+  float weight = 0;
+
+
+  for(int i=0; i<(int)observed_point_cloud_.size(); i++){
+    weight += -(observed_point_cloud_.at(i)-predictedPtCloud.at(i)).squaredNorm()/(rangeSTD*rangeSTD);
+  }
+  p_ptr->weight = gammaP * weight;
 }
 
 //MS2
@@ -190,6 +249,9 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float angle_max) {
   // A new laser scan observation is available (in the laser frame)
   // Call the Update and Resample steps as necessary.
+  for(Particle p: particles_){
+    Update(ranges, range_min, range_max, angle_min, angle_max, &p);
+  }
 }
 
 void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,

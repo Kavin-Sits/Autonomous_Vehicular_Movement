@@ -90,6 +90,8 @@ class ParticleFilter {
   Eigen::Vector2f BaseLinkToMapFrameForPoint(Eigen::Vector2f loc, Eigen::Vector2f pLoc, float theta);
 
   geometry::Line2f BaseLinkToMapFrameForLine(geometry::Line2f line, Eigen::Vector2f pLoc, float theta);
+  amrl_msgs::VisualizationMsg vis_msg_;
+
 
  private:
 
@@ -106,6 +108,7 @@ class ParticleFilter {
   Eigen::Vector2f prev_odom_loc_;
   float prev_odom_angle_;
   bool odom_initialized_;
+  bool rays_initialized_;
 
   std::vector<geometry::Line2f> rays;
 };
