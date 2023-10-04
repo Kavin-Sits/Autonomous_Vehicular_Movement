@@ -108,7 +108,7 @@ void PublishParticles() {
   particle_filter::Particle maxParticle;
   float maxWeight = 0;
   for (const particle_filter::Particle& p : particles) {
-    DrawParticleWithColor(p.loc, p.angle, vis_msg_, 0x20FF0000);
+    DrawParticleWithColor(p.loc, p.angle, vis_msg_, 0x0AFF0000);
     if (p.weight>maxWeight){
       maxWeight = p.weight;
       maxParticle = p;
