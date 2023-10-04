@@ -315,14 +315,17 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     float deltaY = mapY - currentParticle.loc[1];
     float deltaTheta = odom_angle - prev_odom_angle_;
 
+    printf("The deltas: x: %f, y:%f\n", deltaX, deltaY);
     
-    float epsilonX = rng_.Gaussian(deltaX, K_1 * sqrt(deltaX * deltaX + deltaY * deltaY) + K_2 * abs(deltaTheta));
-    float epsilonY = rng_.Gaussian(deltaY, K_1 * sqrt(deltaX * deltaX + deltaY * deltaY) + K_2 * abs(deltaTheta));
-    float epsilonTheta = rng_.Gaussian(deltaTheta, K_3 * sqrt(deltaX * deltaX + deltaY * deltaY) + K_4 * abs(deltaTheta));
+    float epsilonX = rng_.Gaussian(0, K_1 * sqrt(deltaX * deltaX + deltaY * deltaY) + K_2 * abs(deltaTheta));
+    float epsilonY = rng_.Gaussian(0, K_1 * sqrt(deltaX * deltaX + deltaY * deltaY) + K_2 * abs(deltaTheta));
+    float epsilonTheta = rng_.Gaussian(0, K_3 * sqrt(deltaX * deltaX + deltaY * deltaY) + K_4 * abs(deltaTheta));
 
-    currentParticle.loc[0] += epsilonX;
-    currentParticle.loc[1] += epsilonY;
-    currentParticle.angle += epsilonTheta;
+    printf("The epsilons: x: %f, y:%f\n", epsilonX, epsilonY);
+
+    currentParticle.loc[0] += deltaX + epsilonX;
+    currentParticle.loc[1] += deltaY + epsilonY;
+    currentParticle.angle += deltaTheta + epsilonTheta;
 
     particles_[i] = currentParticle;
 
