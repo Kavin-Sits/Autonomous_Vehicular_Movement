@@ -68,6 +68,11 @@ void DrawParticle(const Eigen::Vector2f& loc,
                   float angle,
                   amrl_msgs::VisualizationMsg& msg);
 
+void DrawParticleWithColor(const Eigen::Vector2f& loc,
+                  float angle,
+                  amrl_msgs::VisualizationMsg& msg, 
+                  const uint32_t color);
+
 void DrawPathOption(const float curvature,
                     const float distance,
                     const float clearance,

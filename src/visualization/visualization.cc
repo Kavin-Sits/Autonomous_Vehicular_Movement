@@ -133,8 +133,16 @@ void DrawArc(const Vector2f& center,
 void DrawParticle(const Vector2f& loc,
                   float angle,
                   VisualizationMsg& msg) {
-  DrawArc(loc, 0.1, -M_PI, M_PI, 0xFF0000, msg);
-  DrawLine(loc, loc + Rotation2Df(angle) * Vector2f(0.2, 0), 0xFF0000, msg);
+  DrawArc(loc, 0.1, -M_PI, M_PI, 0x40FF0000, msg);
+  DrawLine(loc, loc + Rotation2Df(angle) * Vector2f(0.2, 0), 0x40FF0000, msg);
+}
+
+void DrawParticleWithColor(const Vector2f& loc,
+                  float angle,
+                  VisualizationMsg& msg, 
+                  const uint32_t color) {
+  DrawArc(loc, 0.1, -M_PI, M_PI, color, msg);
+  DrawLine(loc, loc + Rotation2Df(angle) * Vector2f(0.2, 0), color, msg);
 }
 
 void DrawPathOption(const float curvature,
