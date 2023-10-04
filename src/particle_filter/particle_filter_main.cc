@@ -108,18 +108,13 @@ void PublishParticles() {
   particle_filter::Particle maxParticle;
   float maxWeight = 0;
   for (const particle_filter::Particle& p : particles) {
+    DrawParticleWithColor(p.loc, p.angle, vis_msg_, 0xFF0000);
     if (p.weight>maxWeight){
       maxWeight = p.weight;
       maxParticle = p;
     }
   }
   DrawParticleWithColor(maxParticle.loc, maxParticle.angle, vis_msg_, 0x00FF00);
-  for (const particle_filter::Particle& p : particles) {
-    if (p.weight!=maxWeight) {
-      DrawParticleWithColor(p.loc, p.angle, vis_msg_, 0xFF0000);
-    }
-  }
-  // DrawPoint(maxParticle.loc, 0x00FF00, vis_msg_);
 }
 
 void PublishPredictedScan() {
