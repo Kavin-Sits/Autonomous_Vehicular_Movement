@@ -134,7 +134,7 @@ void DrawParticle(const Vector2f& loc,
                   float angle,
                   VisualizationMsg& msg) {
   DrawArc(loc, 0.1, -M_PI, M_PI, 0xFFFF0000, msg);
-  DrawLine(loc, loc + Rotation2Df(angle) * Vector2f(0.2, 0), 0xFFFF0000, msg);
+  DrawLine(loc, loc + Rotation2Df(angle) * Vector2f(0.2, 0), 0xFF0000, msg);
 }
 
 void DrawPathOption(const float curvature,
