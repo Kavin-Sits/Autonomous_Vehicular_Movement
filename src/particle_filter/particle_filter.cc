@@ -52,10 +52,10 @@ using vector_map::VectorMap;
 DEFINE_double(num_particles, 50, "Number of particles");
 
 namespace {
-  const float K_1 = 0.09;
-  const float K_2 = 0.09;
-  const float K_3 = 0.09;
-  const float K_4 = 0.09;
+  const float K_1 = 0.2;
+  const float K_2 = 0.2;
+  const float K_3 = 0.2;
+  const float K_4 = 0.2;
   const float rangeSTD = 0.05; //placeholder
   const float gammaP = 0.2; // placeholder
   const Vector2f kLaserLoc(0.2, 0);
