@@ -152,13 +152,17 @@ void Navigation::Run() {
   // printf("starting\n\n");
   /* Instantiating values related to obstacles and curvature
   ___________________________________________*/
-  curvature_Obstacles = populateCurvatureObstacles();
-  produced_curvature = GetOptimalCurvature(ANGLE_INC);
-  float freePathLength = GetFreePathLength(produced_curvature);
+  // curvature_Obstacles = populateCurvatureObstacles(); this
+  // produced_curvature = GetOptimalCurvature(ANGLE_INC); this
+  // float freePathLength = GetFreePathLength(produced_curvature);this
+
+
   // colorize();
   // visualization::DrawPathOption(produced_curvature, GetFreePathLength(produced_curvature), ClearanceComputation(produced_curvature), 0x34eb5b, true, local_viz_msg_);
   // printf("\nFree path length: %f\n", freePathLength);
-  remaining_dist = freePathLength;
+
+  // remaining_dist = freePathLength; this
+
   // printf("ending\n\n");
   /*
   __________________________________________
@@ -167,8 +171,8 @@ void Navigation::Run() {
   
 
   // Eventually, you will have to set the control values to issue drive commands:
-  drive_msg_.curvature = produced_curvature;
-  drive_msg_.velocity = Navigation::InstantaneousTimeDecision();
+  drive_msg_.curvature = 1;//produced_curvature; this
+  drive_msg_.velocity = 1;//Navigation::InstantaneousTimeDecision(); this
   // printf("Speed: %f\n", drive_msg_.velocity);
   // printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
