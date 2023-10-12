@@ -107,8 +107,18 @@ void PublishParticles() {
   particle_filter_.GetParticles(&particles);
   // particle_filter::Particle maxParticle;
   // float maxWeight = 0;
-  for (const particle_filter::Particle& p : particles) {
-    DrawParticleWithColor(p.loc, p.angle, vis_msg_, 0xFF0000);
+  for (int i=0; i<(int)particles.size(); i++) {
+    particle_filter::Particle p = particles[i];
+    if (i==0){
+      DrawParticleWithColor(p.loc, p.angle, vis_msg_, 0x0000FF);
+    }
+    else if ( i==(int)particles.size()-1)
+    {
+      DrawParticleWithColor(p.loc, p.angle, vis_msg_, 0x00FF00);
+    }
+    else{
+      DrawParticleWithColor(p.loc, p.angle, vis_msg_, 0xFF0000);
+    }
     // if (p.weight>maxWeight){
     //   maxWeight = p.weight;
     //   maxParticle = p;

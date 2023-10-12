@@ -56,6 +56,8 @@ namespace {
   const float K_2 = 0.2;
   const float K_3 = 0.2;
   const float K_4 = 0.2;
+  const float dShort = 4;
+  const float dLong = 4;
   const float rangeSTD = 0.05; //placeholder
   const float gammaP = 0.2; // placeholder
   const float NUM_RAYS_SKIPPED = 10;
@@ -216,10 +218,32 @@ void ParticleFilter::Update(const vector<float>& ranges,
   GetPredictedPointCloud(p_ptr->loc, p_ptr->angle, ranges.size(), range_min, range_max, angle_min, angle_max, &predictedPtCloud);
   float weight = 0;
 
+  Vector2f laserCoordParticle = Vector2f(p_ptr->loc.x() + cos(p_ptr->angle), p_ptr->loc.y() + sin(p_ptr->angle));
 
   for(int i=0; i<(int)observed_point_cloud_.size(); i++){
+    float predictedRange = (predictedPtCloud.at(i)-laserCoordParticle).norm();
+    if (ranges[i] < range_min || ranges[i] > range_max){
+      weight += 0;
+    }
+    else if (ranges[i] < predictedRange - dShort)
+    {
+      // printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
+      weight += -((dShort * dShort)/(rangeSTD * rangeSTD));
+      /* code */
+    }
+    else if (ranges[i] > predictedRange + dLong)
+    {
+      /* code */
+      printf("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n");
+      weight += -((dLong * dLong)/(rangeSTD * rangeSTD));
+    }
+    else{
+      // printf("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\n");
     weight += -(observed_point_cloud_.at(i)-predictedPtCloud.at(i)).squaredNorm()/(rangeSTD*rangeSTD);
+    }
+
   }
+
   p_ptr->weight = gammaP * weight;
 }
 
@@ -237,9 +261,27 @@ void ParticleFilter::Resample() {
 
   // You will need to use the uniform random number generator provided. For
   // example, to generate a random number between 0 and 1:
-  float x = rng_.UniformRandom(0, 1);
-  printf("Random number drawn from uniform distribution between 0 and 1: %f\n",
-         x);
+
+  float weightSum = 0;
+  std::vector<Particle> newParticles;
+  for(int i=0; i<(int)FLAGS_num_particles; i++){
+    weightSum += particles_[i].weight;
+  }
+
+  for(int i=0; i<(int) particles_.size(); i++){
+    float x = rng_.UniformRandom(0, weightSum);
+    float newW = 0;
+    for(int j=0; j<(int)FLAGS_num_particles; j++){
+      newW += particles_[j].weight;
+      if (newW > x){
+        newParticles.push_back(particles_[j]);
+        break;
+      }
+    }
+  }
+
+  particles_ = newParticles;
+
 }
 
 //Loop through particles and call update
@@ -250,9 +292,11 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float angle_max) {
   // A new laser scan observation is available (in the laser frame)
   // Call the Update and Resample steps as necessary.
-  for(Particle p: particles_){
-    Update(ranges, range_min, range_max, angle_min, angle_max, &p);
+  for(int i=0; i<(int)particles_.size(); i++){
+    Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[i]);
   }
+  NormalizeLogLikelihood();
+  Resample();
 }
 
 void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
@@ -313,7 +357,10 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     float mapY = solutionMatrix(1,2);
     float deltaX = mapX - currentParticle.loc[0];
     float deltaY = mapY - currentParticle.loc[1];
-    float deltaTheta = odom_angle - prev_odom_angle_;
+    float deltaTheta = math_util::AngleMod(odom_angle - prev_odom_angle_);
+
+    // if(abs(deltaX) > 1) deltaX = 0;
+    // if(abs(deltaY) > 1) deltaY = 0;
 
     // printf("The deltas: x: %f, y:%f, theta:%f\n", deltaX, deltaY, deltaTheta);
     
@@ -352,6 +399,7 @@ void ParticleFilter::Initialize(const string& map_file,
   odom_initialized_ = false;
 
   particles_.clear();
+  printf("Particles Cleared\n\n");
   
   for(int i = 0; i<FLAGS_num_particles; i++){
     float x = rng_.Gaussian(loc[0], 0.01);
@@ -386,13 +434,29 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   particle_filter::Particle maxParticle = particles_[0];
   float maxWeight = maxParticle.weight;
   for (const particle_filter::Particle& p : particles_) {
+     printf("Particle weight later: %f\n", p.weight);
     if (p.weight>maxWeight){
       maxWeight = p.weight;
       maxParticle = p;
     }
   }
+
+  printf("__________________________\n");
+
   loc = maxParticle.loc;
   angle = maxParticle.angle;
+}
+
+void ParticleFilter::NormalizeLogLikelihood(){
+  float maxWeight = particles_[0].weight;
+  for(int i=0; i<(int)particles_.size(); i++){
+    if (particles_[i].weight > maxWeight){
+      maxWeight = particles_[i].weight;
+    }
+  }
+  for (int i=0; i<(int)particles_.size(); i++){
+    particles_[i].weight = exp(particles_[i].weight - maxWeight); 
+  }
 }
 
 }  // namespace particle_filter

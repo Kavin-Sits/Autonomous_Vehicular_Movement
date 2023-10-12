@@ -92,6 +92,7 @@ class ParticleFilter {
   geometry::Line2f BaseLinkToMapFrameForLine(geometry::Line2f line, Eigen::Vector2f pLoc, float theta);
   amrl_msgs::VisualizationMsg vis_msg_;
 
+  void NormalizeLogLikelihood();
 
  private:
 
