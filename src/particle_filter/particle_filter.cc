@@ -58,7 +58,7 @@ namespace {
   const float K_4 = 0.2;
   const float dShort = 4;
   const float dLong = 4;
-  const float rangeSTD = 0.05; //placeholder
+  const float rangeSTD = 1.1; //placeholder
   const float gammaP = 0.2; // placeholder
   const float NUM_RAYS_SKIPPED = 10;
   const Vector2f kLaserLoc(0.2, 0);
@@ -296,7 +296,7 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
     Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[i]);
   }
   NormalizeLogLikelihood();
-  // Resample();
+  Resample();
 }
 
 void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
