@@ -111,16 +111,16 @@ void PublishParticles() {
 
   particle_filter::Particle p = {Vector2f(21.85,10.25), M_PI, 1};
   vector<Vector2f> predictedPtCloud;
-  particle_filter_.GetPredictedPointCloud(p.loc, p.angle, 1033.0, 0.02, 30.0, -2.2514, 2.2514, &predictedPtCloud);
+  particle_filter_.GetPredictedPointCloud(p.loc, p.angle, 50, 0.02, 30.0, -2.2514, 2.2514, &predictedPtCloud);
   for (int i=0; i<(int)predictedPtCloud.size(); i++){
     DrawPoint(predictedPtCloud[i], 0x00FF00, vis_msg_);
   }
 
-  particle_filter::Particle p2 = {Vector2f(21.85,10.25), 0, 1};
-  particle_filter_.GetPredictedPointCloud(p2.loc, p2.angle, 1033.0, 0.02, 30.0, -2.2514, 2.2514, &predictedPtCloud);
-  for (int i=0; i<(int)predictedPtCloud.size(); i++){
-    DrawPoint(predictedPtCloud[i], 0x00FF00, vis_msg_);
-  }
+  // particle_filter::Particle p2 = {Vector2f(21.85,10.25), 0, 1};
+  // particle_filter_.GetPredictedPointCloud(p2.loc, p2.angle, 1033.0, 0.02, 30.0, -2.2514, 2.2514, &predictedPtCloud);
+  // for (int i=0; i<(int)predictedPtCloud.size(); i++){
+  //   DrawPoint(predictedPtCloud[i], 0x00FF00, vis_msg_);
+  // }
 
 
   for (int i=0; i<(int)particles.size(); i++) {
