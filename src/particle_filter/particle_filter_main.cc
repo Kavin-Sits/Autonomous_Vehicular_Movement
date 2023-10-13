@@ -107,6 +107,20 @@ void PublishParticles() {
   particle_filter_.GetParticles(&particles);
   // particle_filter::Particle maxParticle;
   // float maxWeight = 0;
+  Particle p = {Vector2f(21.85,10.25), M_PI, 1};
+  vector<Vector2f> predictedPtCloud;
+  GetPredictedPointCloud(p.loc, p.angle, ranges.size(), range_min, range_max, angle_min, angle_max, &predictedPtCloud);
+  for (int i=0; i<(int)predictedPtCloud.size(); i++){
+    DrawPoint(predictedPtCloud[i], 0x00FF00, vis_msg_);
+  }
+
+  Particle p2 = {Vector2f(21.85,10.25), 0, 1};
+  GetPredictedPointCloud(p2.loc, p2.angle, ranges.size(), range_min, range_max, angle_min, angle_max, &predictedPtCloud);
+  for (int i=0; i<(int)predictedPtCloud.size(); i++){
+    DrawPoint(predictedPtCloud[i], 0x00FF00, vis_msg_);
+  }
+
+
   for (int i=0; i<(int)particles.size(); i++) {
     particle_filter::Particle p = particles[i];
     if (i==0){
