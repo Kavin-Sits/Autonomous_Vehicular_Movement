@@ -107,18 +107,20 @@ void PublishParticles() {
   particle_filter_.GetParticles(&particles);
   // particle_filter::Particle maxParticle;
   // float maxWeight = 0;
-  // Particle p = {Vector2f(21.85,10.25), M_PI, 1};
-  // vector<Vector2f> predictedPtCloud;
-  // particle_filter::GetPredictedPointCloud(p.loc, p.angle, ranges.size(), range_min, range_max, angle_min, angle_max, &predictedPtCloud);
-  // for (int i=0; i<(int)predictedPtCloud.size(); i++){
-  //   DrawPoint(predictedPtCloud[i], 0x00FF00, vis_msg_);
-  // }
 
-  // Particle p2 = {Vector2f(21.85,10.25), 0, 1};
-  // particle_filter::GetPredictedPointCloud(p2.loc, p2.angle, ranges.size(), range_min, range_max, angle_min, angle_max, &predictedPtCloud);
-  // for (int i=0; i<(int)predictedPtCloud.size(); i++){
-  //   DrawPoint(predictedPtCloud[i], 0x00FF00, vis_msg_);
-  // }
+
+  particle_filter::Particle p = {Vector2f(21.85,10.25), M_PI, 1};
+  vector<Vector2f> predictedPtCloud;
+  particle_filter_.GetPredictedPointCloud(p.loc, p.angle, 1033.0, 0.02, 30.0, -2.2514, 2.2514, &predictedPtCloud);
+  for (int i=0; i<(int)predictedPtCloud.size(); i++){
+    DrawPoint(predictedPtCloud[i], 0x00FF00, vis_msg_);
+  }
+
+  particle_filter::Particle p2 = {Vector2f(21.85,10.25), 0, 1};
+  particle_filter_.GetPredictedPointCloud(p2.loc, p2.angle, 1033.0, 0.02, 30.0, -2.2514, 2.2514, &predictedPtCloud);
+  for (int i=0; i<(int)predictedPtCloud.size(); i++){
+    DrawPoint(predictedPtCloud[i], 0x00FF00, vis_msg_);
+  }
 
 
   for (int i=0; i<(int)particles.size(); i++) {
@@ -205,11 +207,6 @@ void LaserCallback(const sensor_msgs::LaserScan& msg) {
     printf("Laser t=%f\n", msg.header.stamp.toSec());
   }
   last_laser_msg_ = msg;
-  printf("range min: %f\n", msg.range_min);
-  printf("range max: %f\n", msg.range_max);
-  printf("angle min: %f\n", msg.angle_min);
-  printf("angle max: %f\n", msg.angle_max);
-  printf("range count: %f\n", (float)msg.ranges.size());
   particle_filter_.ObserveLaser(
       msg.ranges,
       msg.range_min,
