@@ -234,7 +234,7 @@ void ParticleFilter::Update(const vector<float>& ranges,
     else if (ranges[i] > predictedRange + dLong)
     {
       /* code */
-      printf("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n");
+      // printf("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n");
       weight += -((dLong * dLong)/(rangeSTD * rangeSTD));
     }
     else{
