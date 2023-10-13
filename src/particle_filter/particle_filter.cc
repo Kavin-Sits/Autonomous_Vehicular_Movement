@@ -296,7 +296,7 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
     Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[i]);
   }
   NormalizeLogLikelihood();
-  Resample();
+  // Resample();
 }
 
 void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
