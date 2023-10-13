@@ -56,8 +56,8 @@ namespace {
   const float K_2 = 0.2;
   const float K_3 = 0.2;
   const float K_4 = 0.2;
-  const float dShort = 4;
-  const float dLong = 4;
+  const float dShort = 0.2;
+  const float dLong = 0.5;
   const float rangeSTD = 1.1; //placeholder
   const float gammaP = 0.2; // placeholder
   const float NUM_RAYS_SKIPPED = 10;
