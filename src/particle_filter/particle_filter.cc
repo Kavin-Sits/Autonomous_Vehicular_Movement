@@ -57,7 +57,7 @@ namespace {
   const float K_3 = 0.2;
   const float K_4 = 0.2;
   const float dShort = 0.2;
-  const float dLong = 0.5;
+  const float dLong = 0.2;
   const float rangeSTD = 1.1; //placeholder
   const float gammaP = 0.2; // placeholder
   const float NUM_RAYS_SKIPPED = 10;
@@ -292,9 +292,15 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float angle_max) {
   // A new laser scan observation is available (in the laser frame)
   // Call the Update and Resample steps as necessary.
-  for(int i=0; i<(int)particles_.size(); i++){
-    Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[i]);
-  }
+  // for(int i=0; i<(int)particles_.size(); i++){
+  //   Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[i]);
+  // }
+  Particle p = {Vector2f(21.85,10.25), M_PI, 1};
+  Particle p2 = {Vector2f(21.85,10.25), 0, 1};
+  Update(ranges, range_min, range_max, angle_min, angle_max, &p);
+  Update(ranges, range_min, range_max, angle_min, angle_max, &p2);
+  printf("p weight is %f and p2 weight is %f\n", p.weight, p2.weight);
+
   NormalizeLogLikelihood();
   Resample();
 }
