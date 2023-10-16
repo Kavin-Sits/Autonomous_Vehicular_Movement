@@ -52,12 +52,12 @@ using vector_map::VectorMap;
 DEFINE_double(num_particles, 50, "Number of particles");
 
 namespace {
-  const float K_1 = 0.3;
-  const float K_2 = 0.3;
-  const float K_3 = 0.3;
-  const float K_4 = 0.3;
-  const float dShort = 0.1;
-  const float dLong = 0.1;
+  const float K_1 = 0.2;
+  const float K_2 = 0.2;
+  const float K_3 = 0.2;
+  const float K_4 = 0.2;
+  const float dShort = 0.2;
+  const float dLong = 0.2;
   const float rangeSTD = 0.5; //placeholder
   const float gammaP = 0.2; // placeholder
   const float NUM_RAYS_SKIPPED = 10;
