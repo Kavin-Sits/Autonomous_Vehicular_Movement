@@ -93,6 +93,7 @@ class ParticleFilter {
   amrl_msgs::VisualizationMsg vis_msg_;
 
   void NormalizeLogLikelihood();
+  std::vector<Eigen::Vector2f> observed_point_cloud_store;
 
  private:
 
@@ -112,7 +113,6 @@ class ParticleFilter {
   bool rays_initialized_;
 
   std::vector<geometry::Line2f> rays;
-  // std::vector<Eigen::Vector2f> observed_point_cloud_;
 };
 }  // namespace slam
 

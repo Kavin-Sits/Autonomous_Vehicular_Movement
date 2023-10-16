@@ -207,14 +207,19 @@ void ParticleFilter::Update(const vector<float>& ranges,
   // msg.range_min // Minimum observable range
   // msg.ranges[i] // The range of the i'th ray
   // printf("Max: %f, Min: %f \n", msg.angle_max, msg.angle_min);
-  float angle_increment = (range_max-range_min)/ranges.size();
+  float angle_increment = (angle_max-angle_min)/ranges.size();
   // printf("observed ranges size: %d", (int)ranges.size());
   for(int i=0; i<(int)ranges.size(); i+=NUM_RAYS_SKIPPED){
-    if (ranges[i]>range_min && ranges[i]<range_max){
-      Vector2f pointInBaseLink = Vector2f(ranges[i]*cos(angle_increment*i + angle_min)+kLaserLoc[0], ranges[i]*sin(angle_increment*i + angle_min)+kLaserLoc[1]);
-      Vector2f pointInMapFrame = BaseLinkToMapFrameForPoint(pointInBaseLink, p_ptr->loc, p_ptr->angle);
-      observed_point_cloud_.push_back(pointInMapFrame);
+    float range = ranges[i];
+    if (range>range_max){
+      range = range_max;
     }
+    else if (range<range_min){
+      range = range_min;
+    }
+    Vector2f pointInBaseLink = Vector2f(range*cos(angle_increment*i + angle_min)+kLaserLoc[0], range*sin(angle_increment*i + angle_min)+kLaserLoc[1]);
+    Vector2f pointInMapFrame = BaseLinkToMapFrameForPoint(pointInBaseLink, p_ptr->loc, p_ptr->angle);
+    observed_point_cloud_.push_back(pointInMapFrame);
   }
   
   vector<Vector2f> predictedPtCloud;
@@ -243,13 +248,14 @@ void ParticleFilter::Update(const vector<float>& ranges,
     // }
     // else{
       // printf("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\n");
-      printf("observed point: (%f,%f), predicted point: (%f, %f)\n", observed_point_cloud_.at(i).x(), observed_point_cloud_.at(i).y(), predictedPtCloud.at(i).x(), predictedPtCloud.at(i).y());
+      // printf("observed point: (%f,%f), predicted point: (%f, %f)\n", observed_point_cloud_.at(i).x(), observed_point_cloud_.at(i).y(), predictedPtCloud.at(i).x(), predictedPtCloud.at(i).y());
     weight += -(observed_point_cloud_.at(i)-predictedPtCloud.at(i)).squaredNorm()/(rangeSTD*rangeSTD);
     // }
 
   }
 
   p_ptr->weight = gammaP * weight;
+  observed_point_cloud_store = observed_point_cloud_;
 }
 
 //MS2
@@ -313,7 +319,7 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
   // Update(ranges, range_min, range_max, angle_min, angle_max, &p2);
   // printf("p weight is %f and p2 weight is %f\n", p.weight, p2.weight);
 
-  // NormalizeLogLikelihood();
+  NormalizeLogLikelihood();
   Resample();
 }
 

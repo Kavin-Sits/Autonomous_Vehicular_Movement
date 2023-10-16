@@ -128,7 +128,9 @@ void PublishParticles() {
   // for (int i=0; i<(int)predictedPtCloud.size(); i++){
   //   DrawPoint(predictedPtCloud[i], 0x0000FF, vis_msg_);
   // }
-
+  for (int i=0; i<(int)particle_filter_.observed_point_cloud_store.size(); i++){
+    DrawPoint(particle_filter_.observed_point_cloud_store[i], 0x00AAA7, vis_msg_);
+  }
 
   for (int i=0; i<(int)particles.size(); i++) {
     particle_filter::Particle p = particles[i];
