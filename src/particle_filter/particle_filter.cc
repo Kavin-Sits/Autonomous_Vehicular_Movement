@@ -72,7 +72,7 @@ ParticleFilter::ParticleFilter() :
     prev_odom_loc_(0, 0),
     prev_odom_angle_(0),
     odom_initialized_(false),
-    rays_initialized_(false){
+    rays_initialized_(false) {
       vis_msg_ = visualization::NewVisualizationMessage("map", "particle_filter");
     }
 
@@ -91,7 +91,7 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
                                             float angle_max,
                                             vector<Vector2f>* scan_ptr) {
 
-
+                               
   if(!rays_initialized_ && num_ranges!=0){
     // printf("num ranges: %d\n", num_ranges);
     for(int i=0; i<num_ranges; i+=NUM_RAYS_SKIPPED){
@@ -106,15 +106,13 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
   
   // printf("printing message %d\n", vis_msg_.ns.at(0));
   vector<Line2f> raysInMapFrame;
-  visualization::DrawLine(Vector2f(0,0), Vector2f(20,20), 0x0F0F0F, vis_msg_);
-  visualization::DrawPoint(Vector2f(5,5), 0x0F0F0F, vis_msg_);
+
   for(Line2f ray: rays){
     Line2f line = BaseLinkToMapFrameForLine(ray, loc, angle);
     // printf("line values: (%f, %f) to (%f, %f)\n", line.p0[0], line.p0[1], line.p1[0], line.p1[1]);
     visualization::DrawLine(line.p0, line.p1, 0x0F0F0F, vis_msg_);
     raysInMapFrame.push_back(line);
   }
-
   vector<Vector2f>& scan = *scan_ptr;
   // Compute what the predicted point cloud would be, if the car was at the pose
   // loc, angle, with the sensor characteristics defined by the provided
@@ -123,19 +121,20 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
   // expected observations, to be used for the update step.
 
   // Note: The returned values must be set using the `scan` variable:
-  scan.resize(num_ranges);
+  scan.resize(raysInMapFrame.size());
   // Fill in the entries of scan using array writes, e.g. scan[i] = ...
-  for (size_t i = 0; i < scan.size(); ++i) {
+  for (size_t i = 0; i < scan.size(); i++) {
     scan[i] = Vector2f(0, 0);
   }
-
   // The line segments in the map are stored in the `map_.lines` variable. You
   // can iterate through them as:
   for(int j=0; j<(int)(raysInMapFrame.size()); j++) {
+    // printf("looking for intersections between point rays at ray %d\n", j);
     Line2f currLine = raysInMapFrame.at(j);
     float minDistance = range_max;
     Vector2f closestPt = currLine.p1;
-    for (size_t i = 0; i < map_.lines.size(); ++i) {
+    for (int i = 0; i < (int) map_.lines.size(); i++) {
+      // printf("looking for intersections between point rays at ray %d and line %d\n", j, i);
       const Line2f map_line = map_.lines[i];
     // The Line2f class has helper functions that will be useful.
     // You can create a new line segment instance as follows, for :
@@ -149,8 +148,10 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
       intersects = map_line.Intersection(currLine, &intersection_point);
       if (intersects) {
         float intersectDistance = (intersection_point-loc).norm();
-        minDistance = std::min(minDistance,intersectDistance);
-        closestPt = intersection_point;
+        if (intersectDistance < minDistance){
+          minDistance = intersectDistance;
+          closestPt = intersection_point;
+        }
         // printf("Intersects at %f,%f\n", intersection_point.x(), intersection_point.y());
       } else {
         // printf("No intersection\n");
@@ -207,10 +208,12 @@ void ParticleFilter::Update(const vector<float>& ranges,
   // msg.ranges[i] // The range of the i'th ray
   // printf("Max: %f, Min: %f \n", msg.angle_max, msg.angle_min);
   float angle_increment = (range_max-range_min)/ranges.size();
+  // printf("observed ranges size: %d", (int)ranges.size());
   for(int i=0; i<(int)ranges.size(); i+=NUM_RAYS_SKIPPED){
     if (ranges[i]>range_min && ranges[i]<range_max){
-      Vector2f point = Vector2f(ranges[i]*cos(angle_increment*i + angle_min)+kLaserLoc[0], ranges[i]*sin(angle_increment*i + angle_min)+kLaserLoc[1]);
-      observed_point_cloud_.push_back(point);
+      Vector2f pointInBaseLink = Vector2f(ranges[i]*cos(angle_increment*i + angle_min)+kLaserLoc[0], ranges[i]*sin(angle_increment*i + angle_min)+kLaserLoc[1]);
+      Vector2f pointInMapFrame = BaseLinkToMapFrameForPoint(pointInBaseLink, p_ptr->loc, p_ptr->angle);
+      observed_point_cloud_.push_back(pointInMapFrame);
     }
   }
   
@@ -218,29 +221,31 @@ void ParticleFilter::Update(const vector<float>& ranges,
   GetPredictedPointCloud(p_ptr->loc, p_ptr->angle, ranges.size(), range_min, range_max, angle_min, angle_max, &predictedPtCloud);
   float weight = 0;
 
-  Vector2f laserCoordParticle = Vector2f(p_ptr->loc.x() + cos(p_ptr->angle), p_ptr->loc.y() + sin(p_ptr->angle));
+  // Vector2f laserCoordParticle = Vector2f(p_ptr->loc.x() + cos(p_ptr->angle), p_ptr->loc.y() + sin(p_ptr->angle));
 
+  // printf("Size of observed point cloud: %d, size of predicted point cloud: %d\n", (int)observed_point_cloud_.size(), (int)predictedPtCloud.size());
   for(int i=0; i<(int)observed_point_cloud_.size(); i++){
-    float predictedRange = (predictedPtCloud.at(i)-laserCoordParticle).norm();
-    if (ranges[i] < range_min || ranges[i] > range_max){
-      weight += 0;
-    }
-    else if (ranges[i] < predictedRange - dShort)
-    {
-      // printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
-      weight += -((dShort * dShort)/(rangeSTD * rangeSTD));
-      /* code */
-    }
-    else if (ranges[i] > predictedRange + dLong)
-    {
-      /* code */
-      // printf("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n");
-      weight += -((dLong * dLong)/(rangeSTD * rangeSTD));
-    }
-    else{
+    // float predictedRange = (predictedPtCloud.at(i)-laserCoordParticle).norm();
+    // if (ranges[i] < range_min || ranges[i] > range_max){
+    //   weight += 0;
+    // }
+    // else if (ranges[i] < predictedRange - dShort)
+    // {
+    //   // printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
+    //   weight += -((dShort * dShort)/(rangeSTD * rangeSTD));
+    //   /* code */
+    // }
+    // else if (ranges[i] > predictedRange + dLong)
+    // {
+    //   /* code */
+    //   // printf("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n");
+    //   weight += -((dLong * dLong)/(rangeSTD * rangeSTD));
+    // }
+    // else{
       // printf("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\n");
+      printf("observed point: (%f,%f), predicted point: (%f, %f)\n", observed_point_cloud_.at(i).x(), observed_point_cloud_.at(i).y(), predictedPtCloud.at(i).x(), predictedPtCloud.at(i).y());
     weight += -(observed_point_cloud_.at(i)-predictedPtCloud.at(i)).squaredNorm()/(rangeSTD*rangeSTD);
-    }
+    // }
 
   }
 
@@ -261,15 +266,19 @@ void ParticleFilter::Resample() {
 
   // You will need to use the uniform random number generator provided. For
   // example, to generate a random number between 0 and 1:
-
   float weightSum = 0;
   std::vector<Particle> newParticles;
+
   for(int i=0; i<(int)FLAGS_num_particles; i++){
     weightSum += particles_[i].weight;
   }
 
+  float x = rng_.UniformRandom(0, weightSum);
   for(int i=0; i<(int) particles_.size(); i++){
-    float x = rng_.UniformRandom(0, weightSum);
+    x += weightSum / (float) particles_.size();
+    if (x>weightSum){
+      x -= weightSum;
+    }
     float newW = 0;
     for(int j=0; j<(int)FLAGS_num_particles; j++){
       newW += particles_[j].weight;
@@ -278,8 +287,10 @@ void ParticleFilter::Resample() {
         break;
       }
     }
+    if ((int)newParticles.size() < i + 1){
+      newParticles.push_back(particles_[0]);
+    }
   }
-
   particles_ = newParticles;
 
 }
@@ -292,16 +303,17 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float angle_max) {
   // A new laser scan observation is available (in the laser frame)
   // Call the Update and Resample steps as necessary.
-  // for(int i=0; i<(int)particles_.size(); i++){
-  //   Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[i]);
-  // }
-  Particle p = {Vector2f(21.85,10.25), M_PI, 1};
-  Particle p2 = {Vector2f(21.85,10.25), 0, 1};
-  Update(ranges, range_min, range_max, angle_min, angle_max, &p);
-  Update(ranges, range_min, range_max, angle_min, angle_max, &p2);
-  printf("p weight is %f and p2 weight is %f\n", p.weight, p2.weight);
+  for(int i=0; i<(int)particles_.size(); i++){
+    Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[i]);
+  }
 
-  NormalizeLogLikelihood();
+  // Particle p = {Vector2f(21.85,10.25), M_PI, 1};
+  // Particle p2 = {Vector2f(21.85,10.25), 0, 1};
+  // Update(ranges, range_min, range_max, angle_min, angle_max, &p);
+  // Update(ranges, range_min, range_max, angle_min, angle_max, &p2);
+  // printf("p weight is %f and p2 weight is %f\n", p.weight, p2.weight);
+
+  // NormalizeLogLikelihood();
   Resample();
 }
 

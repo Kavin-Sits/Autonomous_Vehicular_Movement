@@ -108,18 +108,25 @@ void PublishParticles() {
   // particle_filter::Particle maxParticle;
   // float maxWeight = 0;
 
-
-  particle_filter::Particle p = {Vector2f(21.85,10.25), M_PI, 1};
-  vector<Vector2f> predictedPtCloud;
-  particle_filter_.GetPredictedPointCloud(p.loc, p.angle, 100, 0.02, 30.0, -2, 2, &predictedPtCloud);
+// Visualizing point clouds of specific predicted particles
+// particle_filter::Particle p = {Vector2f(0,0), M_PI, 0.01};
+// for (int i=0; i<(int)particles.size(); i++) {
+//   if (particles[i].weight>p.weight){
+//     p = particles[i];
+//   }
+// }
+  // DrawParticleWithColor(p.loc, p.angle, vis_msg_, 0x00FF00);
+  // vector<Vector2f> predictedPtCloud;
+  // particle_filter_.GetPredictedPointCloud(p.loc, p.angle, 1000, 0.02, 30.0, -2, 2, &predictedPtCloud);
   // for (int i=0; i<(int)predictedPtCloud.size(); i++){
   //   DrawPoint(predictedPtCloud[i], 0x00FF00, vis_msg_);
   // }
 
-  // particle_filter::Particle p2 = {Vector2f(21.85,10.25), 0, 1};
-  // particle_filter_.GetPredictedPointCloud(p2.loc, p2.angle, 1033.0, 0.02, 30.0, -2.2514, 2.2514, &predictedPtCloud);
+  // particle_filter::Particle p2 = {Vector2f(-21.85,10.25), 0, 1};
+  // DrawParticleWithColor(p2.loc, p2.angle, vis_msg_, 0x0000FF);
+  // particle_filter_.GetPredictedPointCloud(p2.loc, p2.angle, 1033, 0.02, 30.0, -2.2514, 2.2514, &predictedPtCloud);
   // for (int i=0; i<(int)predictedPtCloud.size(); i++){
-  //   DrawPoint(predictedPtCloud[i], 0x00FF00, vis_msg_);
+  //   DrawPoint(predictedPtCloud[i], 0x0000FF, vis_msg_);
   // }
 
 
@@ -144,7 +151,7 @@ void PublishParticles() {
 }
 
 void PublishPredictedScan() {
-  const uint32_t kColor = 0xd67d00;
+  // const uint32_t kColor = 0xd67d00;
   Vector2f robot_loc(0, 0);
   float robot_angle(0);
   particle_filter_.GetLocation(&robot_loc, &robot_angle);
@@ -159,7 +166,7 @@ void PublishPredictedScan() {
       last_laser_msg_.angle_max,
       &predicted_scan);
   for (const Vector2f& p : predicted_scan) {
-    DrawPoint(p, kColor, vis_msg_);
+    DrawPoint(p, 0x0000FF, vis_msg_);
   }
 }
 

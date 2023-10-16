@@ -112,6 +112,7 @@ class ParticleFilter {
   bool rays_initialized_;
 
   std::vector<geometry::Line2f> rays;
+  // std::vector<Eigen::Vector2f> observed_point_cloud_;
 };
 }  // namespace slam
 
