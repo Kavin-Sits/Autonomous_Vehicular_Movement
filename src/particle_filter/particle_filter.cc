@@ -226,32 +226,31 @@ void ParticleFilter::Update(const vector<float>& ranges,
   GetPredictedPointCloud(p_ptr->loc, p_ptr->angle, ranges.size(), range_min, range_max, angle_min, angle_max, &predictedPtCloud);
   float weight = 0;
 
-  // Vector2f laserCoordParticle = Vector2f(p_ptr->loc.x() + cos(p_ptr->angle), p_ptr->loc.y() + sin(p_ptr->angle));
+  Vector2f laserCoordParticle = Vector2f(p_ptr->loc.x() + cos(p_ptr->angle), p_ptr->loc.y() + sin(p_ptr->angle));
 
   // printf("Size of observed point cloud: %d, size of predicted point cloud: %d\n", (int)observed_point_cloud_.size(), (int)predictedPtCloud.size());
   for(int i=0; i<(int)observed_point_cloud_.size(); i++){
-    // float predictedRange = (predictedPtCloud.at(i)-laserCoordParticle).norm();
-    // if (ranges[i] < range_min || ranges[i] > range_max){
-    //   weight += 0;
-    // }
-    // else if (ranges[i] < predictedRange - dShort)
-    // {
-    //   // printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
-    //   weight += -((dShort * dShort)/(rangeSTD * rangeSTD));
-    //   /* code */
-    // }
-    // else if (ranges[i] > predictedRange + dLong)
-    // {
-    //   /* code */
-    //   // printf("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n");
-    //   weight += -((dLong * dLong)/(rangeSTD * rangeSTD));
-    // }
-    // else{
+    float predictedRange = (predictedPtCloud.at(i)-laserCoordParticle).norm();
+    if (ranges[i] < range_min || ranges[i] > range_max){
+      weight += 0;
+    }
+    else if (ranges[i] < predictedRange - dShort)
+    {
+      // printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
+      weight += -((dShort * dShort)/(rangeSTD * rangeSTD));
+      /* code */
+    }
+    else if (ranges[i] > predictedRange + dLong)
+    {
+      /* code */
+      // printf("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n");
+      weight += -((dLong * dLong)/(rangeSTD * rangeSTD));
+    }
+    else{
       // printf("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\n");
       // printf("observed point: (%f,%f), predicted point: (%f, %f)\n", observed_point_cloud_.at(i).x(), observed_point_cloud_.at(i).y(), predictedPtCloud.at(i).x(), predictedPtCloud.at(i).y());
     weight += -(observed_point_cloud_.at(i)-predictedPtCloud.at(i)).squaredNorm()/(rangeSTD*rangeSTD);
-    // }
-
+    }
   }
 
   p_ptr->weight = gammaP * weight;
