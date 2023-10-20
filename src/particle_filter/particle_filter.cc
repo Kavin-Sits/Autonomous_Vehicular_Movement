@@ -52,14 +52,14 @@ using vector_map::VectorMap;
 DEFINE_double(num_particles, 50, "Number of particles");
 
 namespace {
-  const float K_1 = 0.2;
-  const float K_2 = 0.2;
-  const float K_3 = 0.2;
-  const float K_4 = 0.2;
-  const float dShort = 0.2;
-  const float dLong = 0.2;
-  const float rangeSTD = 0.5; //placeholder
-  const float gammaP = 0.2; // placeholder
+  const float K_1 = 0.4;// 0.4
+  const float K_2 = 0.4;// 0.4
+  const float K_3 = 0.1;// 0.1
+  const float K_4 = 0.4;// 0.4
+  const float dShort = 0.2;// 0.2
+  const float dLong = 0.2;// 0.2
+  const float rangeSTD = 0.5; // 0.5
+  const float gammaP = 0.2; // 0.2
   const float NUM_RAYS_SKIPPED = 10;
   const Vector2f kLaserLoc(0.2, 0);
 }
@@ -72,7 +72,8 @@ ParticleFilter::ParticleFilter() :
     prev_odom_loc_(0, 0),
     prev_odom_angle_(0),
     odom_initialized_(false),
-    rays_initialized_(false) {
+    rays_initialized_(false),
+    updateCtr(0) {
       vis_msg_ = visualization::NewVisualizationMessage("map", "particle_filter");
     }
 
@@ -308,8 +309,16 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float angle_max) {
   // A new laser scan observation is available (in the laser frame)
   // Call the Update and Resample steps as necessary.
+  updateCtr++;
   for(int i=0; i<(int)particles_.size(); i++){
     Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[i]);
+  }
+  NormalizeLogLikelihood();
+
+  //worsen results sometimes
+  if (updateCtr>3){
+    updateCtr = 0;
+    Resample();
   }
 
   // Particle p = {Vector2f(21.85,10.25), M_PI, 1};
@@ -318,8 +327,6 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
   // Update(ranges, range_min, range_max, angle_min, angle_max, &p2);
   // printf("p weight is %f and p2 weight is %f\n", p.weight, p2.weight);
 
-  NormalizeLogLikelihood();
-  Resample();
 }
 
 void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
@@ -341,12 +348,19 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
   // Update particle pose by movement change
   // Sample errors ex, ey, ethetha from normal distributions
   // Add errors to the particle pose
+
+
   if(!odom_initialized_){
     // printf("Odom Angle %f and Odom Loc (%f, %f)\n", odom_angle, odom_loc[0], odom_loc[1]);
     prev_odom_angle_ = odom_angle;
     prev_odom_loc_ = odom_loc;
     odom_initialized_ = true;
   }
+
+  /*if((odom_loc - prev_odom_loc_).norm() > 1 || abs(odom_angle - prev_odom_angle_) > 1){
+    prev_odom_angle_ = odom_angle;
+    prev_odom_loc_ = odom_loc;
+  }*/
 
   for(int i=0; i<FLAGS_num_particles; i++){
     Particle currentParticle = particles_.at(i);
@@ -381,6 +395,8 @@ void ParticleFilter::ObserveOdometry(const Vector2f& odom_loc,
     float deltaX = mapX - currentParticle.loc[0];
     float deltaY = mapY - currentParticle.loc[1];
     float deltaTheta = math_util::AngleMod(odom_angle - prev_odom_angle_);
+
+    printf("delta X: %f, delta Y: %f, deltaTheta: %f\n", deltaX, deltaY, deltaTheta);
 
     // if(abs(deltaX) > 1) deltaX = 0;
     // if(abs(deltaY) > 1) deltaY = 0;
@@ -443,31 +459,36 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   // Compute the best estimate of the robot's location based on the current set
   // of particles. The computed values must be set to the `loc` and `angle`
   // variables to return them. Modify the following assignments:
-  // float xsum = 0;
-  // float ysum = 0;
-  // float angleSum = 0;
-  // for(int i=0; i<FLAGS_num_particles; i++){
-  //   xsum+=particles_[i].loc[0];
-  //   ysum+=particles_[i].loc[1];
-  //   angleSum+=particles_[i].angle;
-  // }
-  // loc = Vector2f(xsum / FLAGS_num_particles, ysum / FLAGS_num_particles);
-  // angle = angleSum / FLAGS_num_particles;
-
-  particle_filter::Particle maxParticle = particles_[0];
-  float maxWeight = maxParticle.weight;
-  for (const particle_filter::Particle& p : particles_) {
-     printf("Particle weight later: %f\n", p.weight);
-    if (p.weight>maxWeight){
-      maxWeight = p.weight;
-      maxParticle = p;
-    }
+  float xsum = 0;
+  float ysum = 0;
+  float angleSum = 0;
+  float weightSum = 0;
+  for(int i=0; i<FLAGS_num_particles; i++){
+    xsum+=particles_[i].loc[0] * particles_[i].weight;
+    ysum+=particles_[i].loc[1] * particles_[i].weight;
+    angleSum+=particles_[i].angle * particles_[i].weight;
+    weightSum += particles_[i].weight;
   }
+  xsum /= weightSum;
+  ysum /= weightSum;
+  angleSum /= weightSum;
+  loc = Vector2f(xsum, ysum);
+  angle = angleSum;
 
-  printf("__________________________\n");
+  // particle_filter::Particle maxParticle = particles_[0];
+  // float maxWeight = maxParticle.weight;
+  // for (const particle_filter::Particle& p : particles_) {
+  //   //  printf("Particle weight later: %f\n", p.weight);
+  //   if (p.weight>maxWeight){
+  //     maxWeight = p.weight;
+  //     maxParticle = p;
+  //   }
+  // }
 
-  loc = maxParticle.loc;
-  angle = maxParticle.angle;
+  // // printf("__________________________\n");
+
+  // loc = maxParticle.loc;
+  // angle = maxParticle.angle;
 }
 
 void ParticleFilter::NormalizeLogLikelihood(){
