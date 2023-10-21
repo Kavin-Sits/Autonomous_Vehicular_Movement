@@ -316,10 +316,10 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
   NormalizeLogLikelihood();
 
   //worsen results sometimes
-  if (updateCtr>3){
-    updateCtr = 0;
+  // if (updateCtr>3){
+    // updateCtr = 0;
     Resample();
-  }
+  // }
 
   // Particle p = {Vector2f(21.85,10.25), M_PI, 1};
   // Particle p2 = {Vector2f(21.85,10.25), 0, 1};
