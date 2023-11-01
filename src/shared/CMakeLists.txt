@@ -17,6 +17,7 @@ OPTION(GENERATE_SHARED_LIB_UNITTESTS,
 SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ADD_LIBRARY(${AMRL_LIBRARY_NAME}
+            math/shapes.cc
             util/helpers.cc
             util/pthread_utils.cc
             util/timer.cc

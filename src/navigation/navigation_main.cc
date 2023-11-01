@@ -42,6 +42,7 @@
 #include "visualization_msgs/MarkerArray.h"
 #include "nav_msgs/Odometry.h"
 #include "ros/ros.h"
+#include "ros/package.h"
 #include "shared/math/math_util.h"
 #include "shared/util/timer.h"
 #include "shared/ros/ros_helpers.h"
@@ -67,14 +68,43 @@ using Eigen::Vector2f;
 DEFINE_string(laser_topic, "scan", "Name of ROS topic for LIDAR data");
 DEFINE_string(odom_topic, "odom", "Name of ROS topic for odometry data");
 DEFINE_string(loc_topic, "localization", "Name of ROS topic for localization");
-DEFINE_string(init_topic,
-              "initialpose",
-              "Name of ROS topic for initialization");
+// DEFINE_string(init_topic,
+//               "initialpose",
+//               "Name of ROS topic for initialization");
 DEFINE_string(map, "GDC1", "Name of vector map file");
+DEFINE_string(init_topic,
+              "/set_pose",
+              "Name of ROS topic for initialization");
+
 
 bool run_ = true;
 sensor_msgs::LaserScan last_laser_msg_;
 Navigation* navigation_ = nullptr;
+string current_map_;
+
+
+string GetMapFileFromName(const string& map) {
+  string maps_dir_ = ros::package::getPath("amrl_maps");
+  return maps_dir_ + "/" + map + "/" + map + ".vectormap.txt";
+}
+
+void InitCallback(const amrl_msgs::Localization2DMsg& msg) {
+  const Vector2f init_loc(msg.pose.x, msg.pose.y);
+  const float init_angle = msg.pose.theta;
+  current_map_ = msg.map;
+  const string map_file = GetMapFileFromName(current_map_);
+  printf("Initialize: %s (%f,%f) %f\u00b0\n",
+         current_map_.c_str(),
+         init_loc.x(),
+         init_loc.y(),
+         RadToDeg(init_angle));
+         
+  // Here, you'll have to add a function to your Navigation class 
+  // and modify navigation.h and navigation.cc to use the information
+  navigation_->Initialize(map_file, init_loc, init_angle);
+ }
+
+
 
 void LaserCallback(const sensor_msgs::LaserScan& msg) {
   if (FLAGS_v > 0) {
@@ -163,6 +193,10 @@ int main(int argc, char** argv) {
       n.subscribe(FLAGS_laser_topic, 1, &LaserCallback);
   ros::Subscriber goto_sub =
       n.subscribe("/move_base_simple/goal", 1, &GoToCallback);
+  ros::Subscriber initial_pose_sub = n.subscribe(
+      FLAGS_init_topic.c_str(),
+      1,
+      InitCallback);
 
   RateLoop loop(20.0);
   while (run_ && ros::ok()) {

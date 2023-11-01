@@ -113,6 +113,7 @@ class ParticleFilter {
   bool rays_initialized_;
 
   std::vector<geometry::Line2f> rays;
+  std::vector<float> prevWeights;
   float updateCtr;
 };
 }  // namespace slam

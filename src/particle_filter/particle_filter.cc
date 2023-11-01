@@ -316,10 +316,13 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
   NormalizeLogLikelihood();
 
   //worsen results sometimes
-  // if (updateCtr>3){
-    // updateCtr = 0;
+  if (updateCtr>3){
+    updateCtr = 0;
     Resample();
-  // }
+    for (int i=0; i<(int)prevWeights.size(); i++){
+      prevWeights[i] = 1;
+    }
+  }
 
   // Particle p = {Vector2f(21.85,10.25), M_PI, 1};
   // Particle p2 = {Vector2f(21.85,10.25), 0, 1};
@@ -446,6 +449,7 @@ void ParticleFilter::Initialize(const string& map_file,
     float theta = rng_.Gaussian(angle, 0.01);
     Particle p = {Vector2f(x,y), theta, 1};
     particles_.push_back(p);
+    prevWeights.push_back(1);
   }
 
   map_.Load(map_file);
@@ -499,7 +503,8 @@ void ParticleFilter::NormalizeLogLikelihood(){
     }
   }
   for (int i=0; i<(int)particles_.size(); i++){
-    particles_[i].weight = exp(particles_[i].weight - maxWeight); 
+    particles_[i].weight = exp(particles_[i].weight - maxWeight) * prevWeights[i]; 
+    prevWeights[i] = particles_[i].weight;
   }
 }
 

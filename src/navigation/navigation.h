@@ -24,6 +24,9 @@
 #include "eigen3/Eigen/Dense"
 
 #include "vector_map/vector_map.h"
+#include "visualization/visualization.h"
+#include "shared/util/treeNode.h"
+#include "shared/util/random.h"
 
 #ifndef NAVIGATION_H
 #define NAVIGATION_H
@@ -67,6 +70,10 @@ class Navigation {
   // Used to set the next target pose.
   void SetNavGoal(const Eigen::Vector2f& loc, float angle);
 
+  void Initialize(const std::string& map_file,
+                                const Eigen::Vector2f& loc,
+                                const float angle);
+
   float InstantaneousTimeDecision();
 
   float GetOptimalCurvature(float angleIncrement);
@@ -82,6 +89,20 @@ class Navigation {
   float ClearanceComputationForPoint(Eigen::Vector2f p, float curvature);
   
   float GetClosestPointOfApproach(float curvature);
+
+  void createCSpace();
+
+  Eigen::Vector2f sampleState();
+
+  TreeNode* nearestNeighbor(Vector2f target);
+
+  Vector2f steer(Vector2f xRand, Vector2f xNear);
+
+  bool isCollisionFree(Vector2f xNear, Vector2f xNew);
+
+  void visualizeTree(TreeNode* startNode);
+
+  bool visualizePath(TreeNode* startNode);
 
   bool detectObstacles(Eigen::Vector2f p, float curvature);
 
@@ -99,7 +120,16 @@ class Navigation {
   float obstacle_margin;
   float produced_curvature;
   float sensor_range;
+  float maxX;
+  float minX;
+  float maxY;
+  float minY;
+  Eigen::Vector2f target;
+  TreeNode* root;
+  std::vector<TreeNode*> allNodes;
   std::vector<std::vector<Eigen::Vector2f>> curvature_Obstacles;
+  std::vector<Circle> cSpaceCircles;
+  std::vector<Rectangle> cSpaceRectangles;
 
  private:
 
@@ -125,6 +155,9 @@ class Navigation {
   float odom_start_angle_;
   // Latest observed point cloud.
   std::vector<Eigen::Vector2f> point_cloud_;
+
+  // Random number generator.
+  util_random::Random rng_;
 
   // Whether navigation is complete.
   bool nav_complete_;

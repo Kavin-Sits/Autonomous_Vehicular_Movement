@@ -130,6 +130,20 @@ void DrawArc(const Vector2f& center,
   msg.arcs.push_back(arc);
 }
 
+void DrawCircle(Circle circle,
+             uint32_t color,
+             VisualizationMsg& msg) {
+  DrawArc(circle.center, circle.radius, 0, M_2PI, color, msg);
+}
+
+void DrawRectangle(Rectangle rect,
+             uint32_t color,
+             VisualizationMsg& msg) {
+  for(int i=0; i<(int)rect.sides.size(); i++){
+    DrawLine(rect.sides[i].p0, rect.sides[i].p1, color, msg);
+  }
+}
+
 void DrawParticle(const Vector2f& loc,
                   float angle,
                   VisualizationMsg& msg) {

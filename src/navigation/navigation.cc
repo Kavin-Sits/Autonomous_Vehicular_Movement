@@ -32,13 +32,14 @@
 #include "shared/util/timer.h"
 #include "shared/ros/ros_helpers.h"
 #include "navigation.h"
-#include "visualization/visualization.h"
 
 using Eigen::Vector2f;
 using amrl_msgs::AckermannCurvatureDriveMsg;
 using amrl_msgs::VisualizationMsg;
 using std::string;
 using std::vector;
+using std::max;
+using std::min;
 
 using namespace math_util;
 using namespace ros_helpers;
@@ -63,6 +64,7 @@ const float CAR_LEN = 0.4;
 const float H = 0.5;
 const float W = 0.25;
 const float ANGLE_INC = 0.2;
+const float MAX_BRANCH_LENGTH = 0.5;
 } //namespace
 
 namespace navigation {
@@ -79,6 +81,11 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     obstacle_margin(0.1),
     produced_curvature(FLAGS_cp2_curvature),
     sensor_range(0.0),
+    maxX(0.0),
+    minX(__FLT_MAX__),
+    maxY(0.0),
+    minY(__FLT_MAX__),
+    target(0,0),
     odom_initialized_(false),
     localization_initialized_(false),
     robot_loc_(0, 0),
@@ -87,7 +94,8 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     robot_omega_(0),
     nav_complete_(true),
     nav_goal_loc_(0, 0),
-    nav_goal_angle_(0) {
+    nav_goal_angle_(0){
+
   map_.Load(GetMapFileFromName(map_name));
   drive_pub_ = n->advertise<AckermannCurvatureDriveMsg>(
       "ackermann_curvature_drive", 1);
@@ -97,9 +105,46 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
   global_viz_msg_ = visualization::NewVisualizationMessage(
       "map", "navigation_global");
   InitRosHeader("base_link", &drive_msg_.header);
+  createCSpace();
+  root = new TreeNode();
+}
+
+void Navigation::Initialize(const string& map_file,
+                                const Vector2f& loc,
+                                const float angle) {
+  // The "set_pose" button on the GUI was clicked, or an initialization message
+  // was received from the log. Initialize the particles accordingly, e.g. with
+  // some distribution around the provided location and angle.
+
+    allNodes.clear();
+    root = new TreeNode(loc);
+    allNodes.push_back(root);
+    printf("root has been set\n");
+    printf("root has been set to position (%f, %f)\n", loc.x(), loc.y());
+
 }
 
 void Navigation::SetNavGoal(const Vector2f& loc, float angle) {
+  target = loc;
+
+  bool reachedGoal = false;
+  int barrier = 1000000;
+  int i = 0;
+  while(!reachedGoal && i<barrier){
+    Vector2f xRand = sampleState();
+    TreeNode* xNear = nearestNeighbor(xRand);
+    Vector2f xNew = steer(xRand, xNear->point);
+    if (isCollisionFree(xNear->point, xNew)){
+      if((xNew-loc).norm()<=kEpsilon) reachedGoal = true;
+      TreeNode* nextNode = new TreeNode(xNew);
+      allNodes.push_back(nextNode);
+      xNear->addChild(nextNode);
+    }
+    i++;
+  }
+
+  printf("size of tree %d\n", (int)allNodes.size());
+
 }
 
 void Navigation::UpdateLocation(const Eigen::Vector2f& loc, float angle) {
@@ -142,6 +187,26 @@ void Navigation::Run() {
   visualization::ClearVisualizationMsg(local_viz_msg_);
   visualization::ClearVisualizationMsg(global_viz_msg_);
 
+  for(Circle c: cSpaceCircles){
+    visualization::DrawCircle(c, 0x0000FF, local_viz_msg_);
+  }
+
+  for(Rectangle r: cSpaceRectangles){
+    visualization::DrawRectangle(r, 0x0000FF, local_viz_msg_);
+  }
+
+  printf("root children size: %d\n", (int) root->children.size());
+  if(root->children.size() > 0){
+    printf("root has point (%f,%f) and child point (%f, %f)\n", root->point.x(), root->point.y(), root->children[0]->point.x(), root->children[0]->point.y());
+    visualization::DrawLine(root->point, root->children[0]->point, 0x0000FF, local_viz_msg_);
+  }
+  visualizeTree(root);
+  visualizePath(root);
+  // for(TreeNode* t: allNodes){
+  //   // printf("point value: (%f,%f)\n", t.point.x(), t.point.y());
+  //   visualization::DrawParticle(t->point, 0, local_viz_msg_);
+  // }
+
   // If odometry has not been initialized, we can't do anything.
   if (!odom_initialized_) return;
   // float t_start = GetMonotonicTime();
@@ -168,7 +233,6 @@ void Navigation::Run() {
   __________________________________________
   */
   // printObstacleList();
-  
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = 1;//produced_curvature; this
@@ -389,6 +453,120 @@ float Navigation::GetClosestPointOfApproach(float curvature){
 }
 
 //____________________________________________________________________________________________________________________________________________________
+
+
+void Navigation::createCSpace(){
+  float r = sqrt(W * W + H * H)/2;
+  for (int i = 0; i < (int) map_.lines.size(); i++) {
+    Line2f line = map_.lines[i];
+    maxX = max(max(line.p1.x(), line.p0.x()), maxX);
+    minX = min(min(line.p1.x(), line.p0.x()), minX);
+    maxY = max(max(line.p1.y(), line.p0.y()), maxY);
+    minY = min(min(line.p1.y(), line.p0.y()), minY);
+    Circle boundingCircle0 = Circle(line.p0, r);
+    Circle boundingCircle1 = Circle(line.p1, r);
+    float dx = (line.p1.x() - line.p0.x());
+    float dy = (line.p1.y() - line.p0.y());
+    float dxNorm = dx / sqrt(dx * dx + dy * dy);
+    float dyNorm = dy / sqrt(dx * dx + dy * dy);
+    vector<Vector2f> rectPoints = {
+      Vector2f(line.p0.x() - r * dyNorm, line.p0.y() + r * dxNorm),
+      Vector2f(line.p1.x() - r * dyNorm, line.p1.y() + r * dxNorm),
+      Vector2f(line.p1.x() + r * dyNorm, line.p1.y() - r * dxNorm),
+      Vector2f(line.p0.x() + r * dyNorm, line.p0.y() - r * dxNorm)
+    };
+    Rectangle boundingRectangle = Rectangle(rectPoints);
+    cSpaceCircles.push_back(boundingCircle0);
+    cSpaceCircles.push_back(boundingCircle1);
+    cSpaceRectangles.push_back(boundingRectangle);
+  }
+}
+
+Vector2f Navigation::sampleState(){
+  float goalBias = rng_.UniformRandom(0, 1);
+  if(goalBias<=0.05){
+    return target;
+  }
+  Vector2f xRand;
+  bool validStateFound = false;
+  do {
+    xRand = Vector2f(rng_.UniformRandom(minX, maxX), rng_.UniformRandom(minY, maxY));
+    validStateFound = true;
+    for(int i = 0; i < (int) cSpaceCircles.size(); i++) {
+      if(cSpaceCircles[i].containsPoint(xRand)) {
+        validStateFound = false;
+        break;
+      }
+    }
+    if(validStateFound) {
+      for(int i = 0; i < (int) cSpaceRectangles.size(); i++) {
+        if(cSpaceRectangles[i].containsPoint(xRand)) {
+          validStateFound = false;
+          break;
+        }
+      }
+    }
+  } while(!validStateFound);
+  return xRand;
+}
+
+TreeNode* Navigation::nearestNeighbor(Vector2f target){
+  TreeNode* desiredNode = root;
+  float minSquaredDist = __FLT_MAX__;
+  for(int i=0; i<(int) allNodes.size(); i++){
+    float currSquaredDist = (target - allNodes[i]->point).squaredNorm();
+    if (currSquaredDist < minSquaredDist){
+      desiredNode = allNodes[i];
+      minSquaredDist = currSquaredDist;
+    }
+  }
+
+  return desiredNode;
+}
+
+Vector2f Navigation::steer(Vector2f xRand, Vector2f xNear){
+  float dx = xRand.x() - xNear.x();
+  float dy = xRand.y() - xNear.y();
+
+  float dxNorm = dx / sqrt(dx * dx + dy * dy);
+  float dyNorm = dy / sqrt(dx * dx + dy * dy);
+  float branchLength = min(MAX_BRANCH_LENGTH, (xRand - xNear).norm());
+
+  return Vector2f(xNear.x() + branchLength * dxNorm, xNear.y() + branchLength * dyNorm);
+}
+
+bool Navigation::isCollisionFree(Vector2f xNear, Vector2f xNew) {
+  Line2f branch = Line2f(xNear.x(), xNear.y(), xNew.x(), xNew.y());
+  for (int i = 0; i < (int) cSpaceCircles.size(); i++) {
+    if(cSpaceCircles[i].intersectsLine(branch)) return false;
+  }
+  for (int i = 0; i < (int) cSpaceRectangles.size(); i++) {
+    if(cSpaceRectangles[i].intersectsLine(branch)) return false;
+  }
+  return true;
+}
+
+void Navigation::visualizeTree(TreeNode* startNode){
+
+  for(int i=0; i<(int)startNode->children.size(); i++){
+    visualization::DrawLine(startNode->point, startNode->children[i]->point, 0xFF0000, local_viz_msg_);
+    visualizeTree(startNode->children[i]);
+  }
+  return;
+}
+
+bool Navigation::visualizePath(TreeNode* startNode){
+  if ((startNode->point - target).norm() <= kEpsilon){
+    return true;
+  }
+  for(int i=0; i<(int)startNode->children.size(); i++){
+    if (visualizePath(startNode->children[i])){
+      visualization::DrawLine(startNode->point, startNode->children[i]->point, 0x00FF00, local_viz_msg_);
+      return true;
+    }
+  }
+  return false;
+}
 
 bool Navigation::detectObstacles(Vector2f p, float curvature){
   if(abs(curvature) <= kEpsilon){

@@ -25,6 +25,7 @@
 
 #include "eigen3/Eigen/Dense"
 #include "amrl_msgs/VisualizationMsg.h"
+#include "shared/math/shapes.h"
 
 namespace visualization {
 
@@ -54,6 +55,16 @@ void DrawCross(const Eigen::Vector2f& location,
                float size,
                uint32_t color,
                amrl_msgs::VisualizationMsg& msg);
+
+// Add a circle to the visualization message.
+void DrawCircle(Circle circle,
+             uint32_t color,
+             amrl_msgs::VisualizationMsg& msg);
+
+// Add a rectangle to the visualization message.
+void DrawRectangle(Rectangle rect,
+             uint32_t color,
+             amrl_msgs::VisualizationMsg& msg);
 
 // Add a single line to the visualization message.
 void DrawArc(const Eigen::Vector2f& center,
