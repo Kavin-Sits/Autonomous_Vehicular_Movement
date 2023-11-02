@@ -143,7 +143,7 @@ void Navigation::SetNavGoal(const Vector2f& loc, float angle) {
     i++;
   }
 
-  printf("size of tree %d\n", (int)allNodes.size());
+  // printf("size of tree %d\n", (int)allNodes.size());
 
 }
 
@@ -188,18 +188,18 @@ void Navigation::Run() {
   visualization::ClearVisualizationMsg(global_viz_msg_);
 
   for(Circle c: cSpaceCircles){
-    visualization::DrawCircle(c, 0x0000FF, local_viz_msg_);
+    visualization::DrawCircle(c, 0x00539C, global_viz_msg_);
   }
 
   for(Rectangle r: cSpaceRectangles){
-    visualization::DrawRectangle(r, 0x0000FF, local_viz_msg_);
+    visualization::DrawRectangle(r, 0x00539C, global_viz_msg_);
   }
 
-  printf("root children size: %d\n", (int) root->children.size());
-  if(root->children.size() > 0){
-    printf("root has point (%f,%f) and child point (%f, %f)\n", root->point.x(), root->point.y(), root->children[0]->point.x(), root->children[0]->point.y());
-    visualization::DrawLine(root->point, root->children[0]->point, 0x0000FF, local_viz_msg_);
-  }
+  // printf("root children size: %d\n", (int) root->children.size());
+  // if(root->children.size() > 0){
+  //   printf("root has point (%f,%f) and child point (%f, %f)\n", root->point.x(), root->point.y(), root->children[0]->point.x(), root->children[0]->point.y());
+  //   visualization::DrawLine(root->point, root->children[0]->point, 0x0000FF, local_viz_msg_);
+  // }
   visualizeTree(root);
   visualizePath(root);
   // for(TreeNode* t: allNodes){
@@ -235,8 +235,8 @@ void Navigation::Run() {
   // printObstacleList();
 
   // Eventually, you will have to set the control values to issue drive commands:
-  drive_msg_.curvature = 1;//produced_curvature; this
-  drive_msg_.velocity = 1;//Navigation::InstantaneousTimeDecision(); this
+  drive_msg_.curvature = 0;//produced_curvature; this
+  drive_msg_.velocity = 0;//Navigation::InstantaneousTimeDecision(); this
   // printf("Speed: %f\n", drive_msg_.velocity);
   // printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
@@ -549,7 +549,7 @@ bool Navigation::isCollisionFree(Vector2f xNear, Vector2f xNew) {
 void Navigation::visualizeTree(TreeNode* startNode){
 
   for(int i=0; i<(int)startNode->children.size(); i++){
-    visualization::DrawLine(startNode->point, startNode->children[i]->point, 0xFF0000, local_viz_msg_);
+    visualization::DrawLine(startNode->point, startNode->children[i]->point, 0xEE4E34, global_viz_msg_);
     visualizeTree(startNode->children[i]);
   }
   return;
@@ -561,7 +561,7 @@ bool Navigation::visualizePath(TreeNode* startNode){
   }
   for(int i=0; i<(int)startNode->children.size(); i++){
     if (visualizePath(startNode->children[i])){
-      visualization::DrawLine(startNode->point, startNode->children[i]->point, 0x00FF00, local_viz_msg_);
+      visualization::DrawLine(startNode->point, startNode->children[i]->point, 0x79FF23, global_viz_msg_);
       return true;
     }
   }
