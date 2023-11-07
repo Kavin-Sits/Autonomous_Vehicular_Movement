@@ -39,6 +39,8 @@ using amrl_msgs::AckermannCurvatureDriveMsg;
 using amrl_msgs::VisualizationMsg;
 using std::string;
 using std::vector;
+using std::max;
+using std::min;
 
 using namespace math_util;
 using namespace ros_helpers;
@@ -190,7 +192,7 @@ void Navigation::Run() {
 // Given the distance remaining, handle time optimal control with latency adjustments and return the required velocity
 float Navigation::GetVelocity(float dist_remaining) {
   float dist_remaining_latency_accomodated = dist_remaining - prev_velocity * SYSTEM_LATENCY;
-  float velocity_after_accelerating = std::min(MAX_VELOCITY, prev_velocity + MAX_ACCELERATION * TIME_STEP); // Capped at max velocity
+  float velocity_after_accelerating = min(MAX_VELOCITY, prev_velocity + MAX_ACCELERATION * TIME_STEP); // Capped at max velocity
   float dist_traversed_while_decelerating = abs(pow(velocity_after_accelerating, 2) / (2 * MAX_DECELERATION));
   // Accelerate if not at max speed, and there is distance left
   if(prev_velocity < MAX_VELOCITY && dist_remaining_latency_accomodated > dist_traversed_while_decelerating) {
@@ -205,8 +207,8 @@ float Navigation::GetVelocity(float dist_remaining) {
     float required_deceleration = dist_remaining_latency_accomodated <= 0 ?
       MAX_DECELERATION :
       -1 * (pow(prev_velocity, 2) / (2 * dist_remaining_latency_accomodated));
-    float deceleration = std::max(MAX_DECELERATION, required_deceleration);
-    return std::max(0.0f, prev_velocity + deceleration * TIME_STEP);
+    float deceleration = max(MAX_DECELERATION, required_deceleration);
+    return max(0.0f, prev_velocity + deceleration * TIME_STEP);
   }
 }
 
@@ -234,17 +236,17 @@ void Navigation::VisualizeFreePathLengths() {
   }
 }
 
-void Navigation::VisualizeFreePathLength(float curvature) {
-  int color = 0xffbf00;
-  printf("Free Path length for curvature %f: %f\n", curvature, GetFreePathLength(curvature));
-  visualization::DrawPathOption(curvature, GetFreePathLength(curvature), 0, color, true, local_viz_msg_);
-}
+// void Navigation::VisualizeFreePathLength(float curvature) {
+//   int color = 0xffbf00;
+//   printf("Free Path length for curvature %f: %f\n", curvature, GetFreePathLength(curvature));
+//   visualization::DrawPathOption(curvature, GetFreePathLength(curvature), 0, color, true, local_viz_msg_);
+// }
 
 // Score the path produced by a given curvature based off of its free path length, clearance, and distance to goal
 float Navigation::GetPathScore(float curvature) {
   const float fpl_weight = 1.0;
-  const float clearance_weight = 0.05;
-  const float dist_to_goal_weight = 0.10;
+  const float clearance_weight = 0.5;
+  const float dist_to_goal_weight = 0.25;
 
   return GetFreePathLength(curvature) * fpl_weight + GetClearance(curvature) * clearance_weight + GetDistanceToGoal(curvature) * dist_to_goal_weight;
 }
@@ -258,9 +260,9 @@ Vector2f Navigation::GetClosestObstacle(float curvature) {
     closest_obstacle = Vector2f(closest_fpl, 0);
   else {
     float r = 1.0 / curvature;
-    float theta = closest_fpl / r;
-    float x = r * sin(theta);
-    float y = r - r * cos(theta) * (curvature > 1 ? 1 : -1);
+    float theta = max((float) M_2_PI, closest_fpl / r);
+    float x = r * cos(theta);
+    float y = r - r * sin(theta) * (curvature > 1 ? 1 : -1);
     closest_obstacle = Vector2f(x, y);
   }
 
@@ -281,7 +283,7 @@ Vector2f Navigation::GetClosestObstacle(float curvature) {
 // Get free path length to any obstacle
 float Navigation::GetFreePathLength(float curvature) {
   Vector2f closest_obstacle = GetClosestObstacle(curvature);
-  std::cout << closest_obstacle << std::endl;
+  // std::cout << closest_obstacle << std::endl;
   return GetFreePathLengthForPoint(closest_obstacle, curvature);
 }
 
@@ -315,7 +317,7 @@ float Navigation::GetClearance(float curvature) {
     // Ignore obstacles and points near/past the end of our path
     if(!IsObstacle(p, curvature) && p_fpl > closest_obstacle_fpl - kEpsilon) {
       float p_clearance = GetClearanceForPoint(p, curvature);
-      clearance = std::min(clearance, p_clearance);
+      clearance = min(clearance, p_clearance);
     }
   }
 
