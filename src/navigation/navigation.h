@@ -74,21 +74,27 @@ class Navigation {
                                 const Eigen::Vector2f& loc,
                                 const float angle);
 
-  float InstantaneousTimeDecision();
+  float GetVelocity(float dist_remaining);
 
   float GetOptimalCurvature(float angleIncrement);
 
   float GetPathScore(float curvature);
 
+  Eigen::Vector2f GetClosestObstacle(float curvature);
+
   float GetFreePathLength(float curvature);
 
   float GetFreePathLengthForPoint(Eigen::Vector2f p, float curvature);
 
-  float ClearanceComputation(float curvature);
+  float GetClearance(float curvature);
 
-  float ClearanceComputationForPoint(Eigen::Vector2f p, float curvature);
+  float GetClearanceForPoint(Eigen::Vector2f p, float curvature);
+
+  float GetDistanceToGoal(float curvature);
   
-  float GetClosestPointOfApproach(float curvature);
+  Eigen::Vector2f GetClosestPointOfApproach(float curvature);
+
+  bool IsObstacle(Eigen::Vector2f p, float curvature);
 
   void createCSpace();
 
@@ -112,7 +118,9 @@ class Navigation {
 
   int getIndexFromCurvature(float curvature);
 
-  void colorize();
+  void VisualizeFreePathLengths();
+
+  void VisualizeFreePathLength(float curvature);
 
   float prev_velocity;
   float temp_goal_dist;
