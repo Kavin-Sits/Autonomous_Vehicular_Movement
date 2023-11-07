@@ -77,13 +77,21 @@ class Navigation {
 
   float GetFreePathLengthForPoint(Eigen::Vector2f p, float curvature);
 
-  float ClearanceComputation(float curvature);
+  void VisualizeFreePathLengths();
 
-  float ClearanceComputationForPoint(Eigen::Vector2f p, float curvature);
+  void VisualizeFreePathLength(float curvature);
+
+  float GetClearance(float curvature);
+
+  float GetClearanceForPoint(Eigen::Vector2f p, float curvature);
+
+  Eigen::Vector2f GetClosestObstacle(float curvature);
+
+  float GetDistanceToGoal(float curvature);
   
-  float GetClosestPointOfApproach(float curvature);
+  Eigen::Vector2f GetClosestPointOfApproach(float curvature);
 
-  bool detectObstacles(Eigen::Vector2f p, float curvature);
+  bool IsObstacle(Eigen::Vector2f p, float curvature);
 
   std::vector<std::vector<Eigen::Vector2f>> populateCurvatureObstacles();
 
@@ -97,7 +105,7 @@ class Navigation {
   float temp_goal_dist;
   float dist_remaining;
   float obstacle_margin;
-  float produced_curvature;
+  float next_curvature;
   float sensor_range;
   std::vector<std::vector<Eigen::Vector2f>> curvature_Obstacles;
 
