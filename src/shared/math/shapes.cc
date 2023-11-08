@@ -35,6 +35,35 @@ bool Circle::intersectsLine(Line2f line){
     return (p-center).squaredNorm() <= radius * radius;
 }
 
+vector<Vector2f> Circle::intersectionPt(Line2f line) {
+    Vector2f p0 = line.p0;
+    Vector2f p1 = line.p1;
+    Vector2f d = p1 - p0;
+    Vector2f f = p0 - center;
+
+    float a = d.dot(d);
+    float b = 2 * f.dot(d);
+    float c = f.dot(f) - radius * radius;
+
+    float discriminant = b * b - 4 * a * c;
+    vector<Vector2f> intersections;
+
+    if (discriminant >= 0) {
+        // line might intersect the circle; discriminant = 0 means the line is tangent
+        discriminant = std::sqrt(discriminant);
+        float t1 = (-b - discriminant) / (2 * a);
+        float t2 = (-b + discriminant) / (2 * a);
+
+        if (t1 >= 0 && t1 <= 1) {
+            intersections.push_back(p0 + d * t1);
+        }
+        if (t2 >= 0 && t2 <= 1 && discriminant > 0) { // discriminant > 0 checks for two distinct points
+            intersections.push_back(p0 + d * t2);
+        }
+    }
+
+    return intersections;
+}
 
 Rectangle::Rectangle(vector<Vector2f> points){
     for(int i=0; i<4; i++){

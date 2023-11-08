@@ -37,9 +37,10 @@ class Circle{
     Vector2f center;
     float radius;
 
-    Circle(Eigen::Vector2f origin, float radius);
-    bool containsPoint(Eigen::Vector2f point);
+    Circle(Vector2f origin, float radius);
+    bool containsPoint(Vector2f point);
     bool intersectsLine(Line2f line);
+    vector<Vector2f> intersectionPt(Line2f line);
 };
 
 class Rectangle{
@@ -47,6 +48,6 @@ class Rectangle{
     vector<Line2f> sides;
 
     Rectangle(vector<Vector2f> points);
-    bool containsPoint(Eigen::Vector2f point);
+    bool containsPoint(Vector2f point);
     bool intersectsLine(Line2f line);
 };

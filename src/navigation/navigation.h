@@ -27,6 +27,7 @@
 #include "visualization/visualization.h"
 #include "shared/util/treeNode.h"
 #include "shared/util/random.h"
+#include "shared/math/line2d.h"
 
 #ifndef NAVIGATION_H
 #define NAVIGATION_H
@@ -45,6 +46,10 @@ struct PathOption {
   Eigen::Vector2f closest_point;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
+
+using std::vector;
+using Eigen::Vector2f;
+using geometry::Line2f;
 
 class Navigation {
  public:
@@ -94,7 +99,15 @@ class Navigation {
   
   Eigen::Vector2f GetClosestPointOfApproach(float curvature);
 
+  void setLocalTarget();
+
+  Vector2f BaseLinkToMapFrameForPoint(Vector2f linePt, Vector2f robotLoc, float theta);
+
+  Vector2f MapFrameToBaseLinkForPoint(Vector2f linePt, Vector2f robotLoc, float theta);
+
   bool IsObstacle(Eigen::Vector2f p, float curvature);
+
+  bool createPath(TreeNode* startNode);
 
   void createCSpace();
 
@@ -132,12 +145,15 @@ class Navigation {
   float minX;
   float maxY;
   float minY;
+  bool pathReady;
   Eigen::Vector2f target;
+  Eigen::Vector2f localTarget;
   TreeNode* root;
   std::vector<TreeNode*> allNodes;
   std::vector<std::vector<Eigen::Vector2f>> curvature_Obstacles;
   std::vector<Circle> cSpaceCircles;
   std::vector<Rectangle> cSpaceRectangles;
+  vector<Line2f> path;
 
  private:
 

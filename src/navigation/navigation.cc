@@ -67,6 +67,7 @@ const float MAX_DEC = -3;
 const float OBSTACLE_MARGIN = 0.1;
 
 const float CAR_LEN = 0.4;
+const float LOCAL_GOAL_RADIUS = 1;
 const float H = 0.5;
 const float W = 0.25;
 
@@ -96,7 +97,9 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
     minX(__FLT_MAX__),
     maxY(0.0),
     minY(__FLT_MAX__),
+    pathReady(false),
     target(0,0),
+    localTarget(0,0),
     odom_initialized_(false),
     localization_initialized_(false),
     robot_loc_(0, 0),
@@ -116,7 +119,7 @@ Navigation::Navigation(const string& map_name, ros::NodeHandle* n) :
   global_viz_msg_ = visualization::NewVisualizationMessage(
       "map", "navigation_global");
   InitRosHeader("base_link", &drive_msg_.header);
-  // createCSpace();
+  createCSpace();
   root = new TreeNode();
 }
 
@@ -138,6 +141,10 @@ void Navigation::Initialize(const string& map_file,
 void Navigation::SetNavGoal(const Vector2f& loc, float angle) {
   target = loc;
 
+  allNodes.clear();
+  root = new TreeNode(robot_loc_);
+  allNodes.push_back(root);
+
   bool reachedGoal = false;
   int barrier = 1000000;
   int i = 0;
@@ -154,6 +161,9 @@ void Navigation::SetNavGoal(const Vector2f& loc, float angle) {
     i++;
   }
 
+  path.clear();
+  createPath(root);
+  pathReady = true;
   // printf("size of tree %d\n", (int)allNodes.size());
 
 }
@@ -195,19 +205,38 @@ void Navigation::Run() {
   // This function gets called 20 times a second to form the control loop.
   
   // Clear previous visualizations.
-  // visualization::ClearVisualizationMsg(local_viz_msg_);
-  // visualization::ClearVisualizationMsg(global_viz_msg_);
+  visualization::ClearVisualizationMsg(local_viz_msg_);
+  visualization::ClearVisualizationMsg(global_viz_msg_);
 
-  // for(Circle c: cSpaceCircles){
-  //   visualization::DrawCircle(c, 0x00539C, global_viz_msg_);
-  // }
+  if(!pathReady || (robot_loc_-target).norm()<=LOCAL_GOAL_RADIUS){
+    drive_msg_.curvature =0;
+    drive_msg_.velocity = 0;
 
-  // for(Rectangle r: cSpaceRectangles){
-  //   visualization::DrawRectangle(r, 0x00539C, global_viz_msg_);
-  // }
+    // Add timestamps to all messages.
+    local_viz_msg_.header.stamp = ros::Time::now();
+    global_viz_msg_.header.stamp = ros::Time::now();
+    drive_msg_.header.stamp = ros::Time::now();
+    // Publish messages.
+    viz_pub_.publish(local_viz_msg_);
+    viz_pub_.publish(global_viz_msg_);
+    drive_pub_.publish(drive_msg_);
 
-  // visualizeTree(root);
-  // visualizePath(root);
+    return;
+  }
+
+  for(Circle c: cSpaceCircles){
+    visualization::DrawCircle(c, 0x00539C, global_viz_msg_);
+  }
+
+  for(Rectangle r: cSpaceRectangles){
+    visualization::DrawRectangle(r, 0x00539C, global_viz_msg_);
+  }
+
+  Circle car = Circle(robot_loc_, LOCAL_GOAL_RADIUS);
+  visualization::DrawCircle(car, 0xFF0000, global_viz_msg_);
+
+  visualizeTree(root);
+  visualizePath(root);
   // for(TreeNode* t: allNodes){
   //   // printf("point value: (%f,%f)\n", t.point.x(), t.point.y());
   //   visualization::DrawParticle(t->point, 0, local_viz_msg_);
@@ -237,7 +266,7 @@ void Navigation::Run() {
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = produced_curvature;
-  drive_msg_.velocity = Navigation::GetVelocity(remaining_dist);
+  drive_msg_.velocity = GetVelocity(remaining_dist);
   printf("Speed: %f\n", drive_msg_.velocity);
   printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
@@ -281,6 +310,9 @@ float Navigation::GetVelocity(float dist_remaining) {
 float Navigation::GetOptimalCurvature(float curvature_increment) {
   float highest_score = -1 * __FLT_MAX__;
   float best_curvature = -1.0;
+
+  setLocalTarget();
+
   for(float i = -1.0; i<=1.0; i+=curvature_increment){
     float score = GetPathScore(i);
     if(score > highest_score){
@@ -293,9 +325,9 @@ float Navigation::GetOptimalCurvature(float curvature_increment) {
 
 //Calculating scores using combination of approaches
 float Navigation::GetPathScore(float curvature){
-  const float fpl_weight = 1.0;
-  const float clearance_weight = 0.05;
-  const float dist_to_goal_weight = 0.10;
+  const float fpl_weight = 0.1;
+  const float clearance_weight = 0.1;
+  const float dist_to_goal_weight = 0.8;
 
   return GetFreePathLength(curvature) * fpl_weight + GetClearance(curvature) * clearance_weight + GetDistanceToGoal(curvature) * dist_to_goal_weight;
 }
@@ -309,9 +341,9 @@ Vector2f Navigation::GetClosestObstacle(float curvature) {
     closest_obstacle = Vector2f(closest_fpl, 0);
   else {
     float r = 1.0 / curvature;
-    float theta = closest_fpl / r;
-    float x = r * sin(theta);
-    float y = r - r * cos(theta) * (curvature > 1 ? 1 : -1);
+    float theta = max((float) M_2PI, closest_fpl / r);
+    float x = r * cos(theta);
+    float y = r - r * sin(theta) * (curvature > 1 ? 1 : -1);
     closest_obstacle = Vector2f(x, y);
   }
 
@@ -334,7 +366,7 @@ Vector2f Navigation::GetClosestObstacle(float curvature) {
 // Get free path length to any obstacle
 float Navigation::GetFreePathLength(float curvature) {
   Vector2f closest_obstacle = GetClosestObstacle(curvature);
-  std::cout << closest_obstacle << std::endl;
+  // std::cout << closest_obstacle << std::endl;
   return GetFreePathLengthForPoint(closest_obstacle, curvature);
 }
 
@@ -368,7 +400,7 @@ float Navigation::GetClearance(float curvature) {
     // Ignore obstacles and points near/past the end of our path
     if(!IsObstacle(p, curvature) && p_fpl > closest_obstacle_fpl - kEpsilon) {
       float p_clearance = GetClearanceForPoint(p, curvature);
-      clearance = std::min(clearance, p_clearance);
+      clearance = min(clearance, p_clearance);
     }
   }
 
@@ -396,27 +428,74 @@ float Navigation::GetClearanceForPoint(Vector2f p, float curvature) {
 
 // Get the closest distance the car will be to our temporary goal
 float Navigation::GetDistanceToGoal(float curvature) {
-  Vector2f closest_obstacle = GetClosestObstacle(curvature);
+  // Vector2f closest_obstacle = GetClosestObstacle(curvature);
   Vector2f closest_point_of_approach = GetClosestPointOfApproach(curvature);
-  Vector2f goal = Vector2f(TEMPORARY_GOAL_DIST, 0);
-  // An obstacle is between the car and its closest point of approach
-  if(GetFreePathLengthForPoint(closest_obstacle, curvature) < GetFreePathLengthForPoint(closest_point_of_approach, curvature))
-    return (goal - closest_obstacle).norm();
-  // No obstacle, return distance from closest point of approach
-  return (goal - closest_point_of_approach).norm();
+  // visualization::DrawParticleWithColor(closest_point_of_approach, 0, global_viz_msg_, 0x0000FF);
+  // // An obstacle is between the car and its closest point of approach
+  // if(GetFreePathLengthForPoint(closest_obstacle, curvature) < GetFreePathLengthForPoint(closest_point_of_approach, curvature))
+  //   return (localTarget - closest_obstacle).norm();
+  // // No obstacle, return distance from closest point of approach
+  return -(localTarget - closest_point_of_approach).norm();
 }
 
 Vector2f Navigation::GetClosestPointOfApproach(float curvature) {
   // Straight line case
-  if(abs(curvature) <= kEpsilon)
-    return Vector2f(0, TEMPORARY_GOAL_DIST);
+  if(abs(curvature) <= kEpsilon) {
+    Vector2f goal_base_link = MapFrameToBaseLinkForPoint(localTarget, robot_loc_, robot_angle_);
+    Vector2f closest_point_base = Vector2f(goal_base_link.x(), 0.0);
+    return BaseLinkToMapFrameForPoint(closest_point_base, robot_loc_, robot_angle_);
+  }
 
   float r = 1.0 / curvature;
-  Vector2f c = Vector2f(0, r);
-  Vector2f goal = Vector2f(TEMPORARY_GOAL_DIST, 0);
-  float point_goal_dist = (c - goal).norm() - r;
-  float theta = std::atan2(TEMPORARY_GOAL_DIST, r);
-  return Vector2f(TEMPORARY_GOAL_DIST - point_goal_dist * sin(theta), point_goal_dist * cos(theta));
+  Vector2f c = BaseLinkToMapFrameForPoint(Vector2f(0, r), robot_loc_, robot_angle_);
+  // visualization::DrawParticleWithColor(c, 0, global_viz_msg_, 0x0FF00F);
+  float center_goal_dist = (c - localTarget).norm();
+
+  Vector2f direction_to_target = localTarget - c;
+  Vector2f normalized_direction = direction_to_target / center_goal_dist;
+  Vector2f center_to_closest_point = normalized_direction * abs(r);
+
+  return c + center_to_closest_point;
+}
+
+void Navigation::setLocalTarget(){
+  Circle car = Circle(robot_loc_, LOCAL_GOAL_RADIUS);
+  bool found = false;
+
+  while(!found && pathReady) {
+    for(int i=0; i<(int)path.size(); i++){
+      vector<Vector2f> intersections = car.intersectionPt(path.at(i));
+      if(intersections.size()>0){
+        found = true;
+        localTarget = intersections[0];
+        visualization::DrawParticleWithColor(localTarget, 0, global_viz_msg_, 0x00FF00);
+        break;
+      }
+    }
+
+    if(!found){
+      pathReady = false;
+      SetNavGoal(target, 0);
+    }
+  }
+}
+
+Vector2f Navigation::BaseLinkToMapFrameForPoint(Vector2f linePt, Vector2f robotLoc, float theta){
+  Eigen::Rotation2Df thetaRotation(theta);
+  Eigen::Matrix2f rot = thetaRotation.toRotationMatrix();
+  Vector2f pWorld = rot * linePt + robotLoc;
+  return pWorld;
+}
+
+Vector2f Navigation::MapFrameToBaseLinkForPoint(Vector2f linePt, Vector2f robotLoc, float theta){
+  linePt -= robotLoc;
+  Eigen::Rotation2Df thetaRotation(theta);
+  Eigen::Matrix2f rot = thetaRotation.toRotationMatrix();
+  return rot * linePt;
+  // Eigen::Rotation2Df thetaRotation(theta);
+  // Eigen::Matrix2f rot = thetaRotation.toRotationMatrix();
+  // Vector2f pWorld = rot * linePt + robotLoc;
+  // return pWorld;
 }
 
 bool Navigation::IsObstacle(Vector2f p, float curvature){
@@ -435,7 +514,18 @@ bool Navigation::IsObstacle(Vector2f p, float curvature){
 }
 
 //____________________________________________________________________________________________________________________________________________________
-
+bool Navigation::createPath(TreeNode* startNode) {
+  if ((startNode->point - target).norm() <= kEpsilon){
+    return true;
+  }
+  for(int i=0; i<(int)startNode->children.size(); i++){
+    if (createPath(startNode->children[i])){
+      path.push_back(Line2f(startNode->point, startNode->children[i]->point));
+      return true;
+    }
+  }
+  return false;
+}
 
 void Navigation::createCSpace(){
   float r = sqrt(W * W + H * H)/2;
