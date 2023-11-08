@@ -325,9 +325,9 @@ float Navigation::GetOptimalCurvature(float curvature_increment) {
 
 //Calculating scores using combination of approaches
 float Navigation::GetPathScore(float curvature){
-  const float fpl_weight = 0.1;
-  const float clearance_weight = 0.1;
-  const float dist_to_goal_weight = 0.8;
+  const float fpl_weight = 0.001;
+  const float clearance_weight = 0.001;
+  const float dist_to_goal_weight = 0.998;
 
   return GetFreePathLength(curvature) * fpl_weight + GetClearance(curvature) * clearance_weight + GetDistanceToGoal(curvature) * dist_to_goal_weight;
 }
