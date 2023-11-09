@@ -208,7 +208,7 @@ void Navigation::Run() {
   visualization::ClearVisualizationMsg(local_viz_msg_);
   visualization::ClearVisualizationMsg(global_viz_msg_);
 
-  if(!pathReady && (robot_loc_-target).norm()<=LOCAL_GOAL_RADIUS){
+  if(!pathReady || (robot_loc_-target).norm()<=LOCAL_GOAL_RADIUS){
     drive_msg_.curvature =0;
     drive_msg_.velocity = 0;
 
