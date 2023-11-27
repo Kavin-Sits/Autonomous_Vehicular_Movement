@@ -208,65 +208,65 @@ void Navigation::Run() {
   visualization::ClearVisualizationMsg(local_viz_msg_);
   visualization::ClearVisualizationMsg(global_viz_msg_);
 
-  if(!pathReady || (robot_loc_-target).norm()<=LOCAL_GOAL_RADIUS){
-    drive_msg_.curvature =0;
-    drive_msg_.velocity = 0;
+  // if(!pathReady || (robot_loc_-target).norm()<=LOCAL_GOAL_RADIUS){
+  //   drive_msg_.curvature =0;
+  //   drive_msg_.velocity = 0;
 
-    // Add timestamps to all messages.
-    local_viz_msg_.header.stamp = ros::Time::now();
-    global_viz_msg_.header.stamp = ros::Time::now();
-    drive_msg_.header.stamp = ros::Time::now();
-    // Publish messages.
-    viz_pub_.publish(local_viz_msg_);
-    viz_pub_.publish(global_viz_msg_);
-    drive_pub_.publish(drive_msg_);
+  //   // Add timestamps to all messages.
+  //   local_viz_msg_.header.stamp = ros::Time::now();
+  //   global_viz_msg_.header.stamp = ros::Time::now();
+  //   drive_msg_.header.stamp = ros::Time::now();
+  //   // Publish messages.
+  //   viz_pub_.publish(local_viz_msg_);
+  //   viz_pub_.publish(global_viz_msg_);
+  //   drive_pub_.publish(drive_msg_);
 
-    return;
-  }
-
-  for(Circle c: cSpaceCircles){
-    visualization::DrawCircle(c, 0x00539C, global_viz_msg_);
-  }
-
-  for(Rectangle r: cSpaceRectangles){
-    visualization::DrawRectangle(r, 0x00539C, global_viz_msg_);
-  }
-
-  Circle car = Circle(robot_loc_, LOCAL_GOAL_RADIUS);
-  visualization::DrawCircle(car, 0xFF0000, global_viz_msg_);
-
-  visualizeTree(root);
-  visualizePath(root);
-  // for(TreeNode* t: allNodes){
-  //   // printf("point value: (%f,%f)\n", t.point.x(), t.point.y());
-  //   visualization::DrawParticle(t->point, 0, local_viz_msg_);
+  //   return;
   // }
 
-  // If odometry has not been initialized, we can't do anything.
-  if (!odom_initialized_) return;
-  // float t_start = GetMonotonicTime();
-  // The control iteration goes here. 
-  // Feel free to make helper functions to structure the control appropriately.
+  // for(Circle c: cSpaceCircles){
+  //   visualization::DrawCircle(c, 0x00539C, global_viz_msg_);
+  // }
 
-  // The latest observed point cloud is accessible via "point_cloud_"
-  // printf("starting\n\n");
-  /* Instantiating values related to obstacles and curvature
-  ___________________________________________*/
-  // curvature_Obstacles = populateCurvatureObstacles(); this
-  // produced_curvature = GetOptimalCurvature(ANGLE_INC); this
-  // float freePathLength = GetFreePathLength(produced_curvature);this
+  // for(Rectangle r: cSpaceRectangles){
+  //   visualization::DrawRectangle(r, 0x00539C, global_viz_msg_);
+  // }
+
+  // Circle car = Circle(robot_loc_, LOCAL_GOAL_RADIUS);
+  // visualization::DrawCircle(car, 0xFF0000, global_viz_msg_);
+
+  // visualizeTree(root);
+  // visualizePath(root);
+  // // for(TreeNode* t: allNodes){
+  // //   // printf("point value: (%f,%f)\n", t.point.x(), t.point.y());
+  // //   visualization::DrawParticle(t->point, 0, local_viz_msg_);
+  // // }
+
+  // // If odometry has not been initialized, we can't do anything.
+  // if (!odom_initialized_) return;
+  // // float t_start = GetMonotonicTime();
+  // // The control iteration goes here. 
+  // // Feel free to make helper functions to structure the control appropriately.
+
+  // // The latest observed point cloud is accessible via "point_cloud_"
+  // // printf("starting\n\n");
+  // /* Instantiating values related to obstacles and curvature
+  // ___________________________________________*/
+  // // curvature_Obstacles = populateCurvatureObstacles(); this
+  // // produced_curvature = GetOptimalCurvature(ANGLE_INC); this
+  // // float freePathLength = GetFreePathLength(produced_curvature);this
 
 
-  produced_curvature = GetOptimalCurvature(CURVATURE_STEP);
-  float freePathLength = GetFreePathLength(produced_curvature);
-  VisualizeFreePathLengths();
-  // VisualizeFreePathLength(0.8);
-  printf("\nFree path length: %f\n", freePathLength);
-  remaining_dist = freePathLength;
+  // produced_curvature = GetOptimalCurvature(CURVATURE_STEP);
+  // float freePathLength = GetFreePathLength(produced_curvature);
+  // VisualizeFreePathLengths();
+  // // VisualizeFreePathLength(0.8);
+  // printf("\nFree path length: %f\n", freePathLength);
+  // remaining_dist = freePathLength;
 
   // Eventually, you will have to set the control values to issue drive commands:
-  drive_msg_.curvature = produced_curvature;
-  drive_msg_.velocity = GetVelocity(remaining_dist);
+  drive_msg_.curvature = 0;//produced_curvature;
+  drive_msg_.velocity = 2;//GetVelocity(remaining_dist);
   printf("Speed: %f\n", drive_msg_.velocity);
   printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
