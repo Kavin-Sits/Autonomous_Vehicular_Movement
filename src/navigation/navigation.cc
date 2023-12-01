@@ -266,7 +266,7 @@ void Navigation::Run() {
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = 0;//produced_curvature;
-  drive_msg_.velocity = 4;//GetVelocity(remaining_dist);
+  drive_msg_.velocity = 3;//GetVelocity(remaining_dist);
   printf("Speed: %f\n", drive_msg_.velocity);
   printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
