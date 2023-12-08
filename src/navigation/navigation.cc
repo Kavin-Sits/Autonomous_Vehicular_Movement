@@ -302,9 +302,9 @@ float Navigation::GetLaunchDistError(float v, float a, float b, float c) {
 
 float Navigation::GetLaunchDist(float v) {
   float launchAngle = std::atan2(rampH, rampL);
-  float predictedDist = 0.75*((v * cos(launchAngle) / G) * (v * sin(launchAngle) + sqrt(v * v * sin(launchAngle) * sin(launchAngle) + 2 * G * H)));
+  float predictedDist = (v * cos(launchAngle) / G) * (v * sin(launchAngle) + sqrt(v * v * sin(launchAngle) * sin(launchAngle) + 2 * G * H));
   float error = GetLaunchDistError(v, A, B, C);
-  return predictedDist + error;
+  return 0.77 * (predictedDist + error);
 }
 
 float Navigation::GetLaunchVelocity(float targetDist) {
