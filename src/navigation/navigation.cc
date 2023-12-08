@@ -60,7 +60,7 @@ const float kEpsilon = 1e-5;
 // seconds
 const float TIME_STEP = 0.05; // Interval between time steps
 const float SYSTEM_LATENCY = 0.15;
-const float MAX_VEL = 1;
+const float MAX_VEL = 6;
 const float MAX_ACC = 3;
 const float MAX_DEC = -3;
 
@@ -265,6 +265,7 @@ void Navigation::Run() {
   // remaining_dist = freePathLength;
 
   // Eventually, you will have to set the control values to issue drive commands:
+  printf("flag value: %f", FLAGS_cp1_distance);
   drive_msg_.curvature = 0;//produced_curvature;
   drive_msg_.velocity = GetVelocity(FLAGS_cp1_distance);
   printf("Speed: %f\n", drive_msg_.velocity);
