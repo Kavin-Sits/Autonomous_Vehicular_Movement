@@ -44,7 +44,7 @@ using std::min;
 using namespace math_util;
 using namespace ros_helpers;
 
-DEFINE_double(cp1_distance, 25, "Distance to travel for 1D TOC (cp1)");
+DEFINE_double(cp1_distance, 1, "Distance to travel for 1D TOC (cp1)");
 DEFINE_double(cp1_curvature, 0, "Curvature for arc path (cp1)");
 
 DEFINE_double(cp2_curvature, 0, "Curvature for arc path (cp2)");
@@ -266,7 +266,7 @@ void Navigation::Run() {
 
   // Eventually, you will have to set the control values to issue drive commands:
   drive_msg_.curvature = 0;//produced_curvature;
-  drive_msg_.velocity = 5;//GetVelocity(remaining_dist);
+  drive_msg_.velocity = GetVelocity(FLAGS_cp1_distance);
   printf("Speed: %f\n", drive_msg_.velocity);
   printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
