@@ -79,6 +79,12 @@ class Navigation {
                                 const Eigen::Vector2f& loc,
                                 const float angle);
 
+  float GetLaunchDistError(float v, float a, float b, float c);
+
+  float GetLaunchDist(float v);
+
+  float GetLaunchVelocity(float targetDist);
+  
   float GetVelocity(float dist_remaining);
 
   float GetOptimalCurvature(float angleIncrement);

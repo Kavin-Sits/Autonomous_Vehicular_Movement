@@ -77,6 +77,15 @@ const float CURVATURE_STEP = 0.2;
 
 const float ANGLE_INC = 0.2;
 const float MAX_BRANCH_LENGTH = 0.5;
+
+//for final project
+const float G = 9.8;
+const float VEL_INCREMENT = 0.01;
+const float rampH = 0.25;
+const float rampL = 0.66;
+const float A = 0.03843839216930989;
+const float B = -0.1350928896516126;
+const float C = -0.006448453967933254;
 } //namespace
 
 namespace navigation {
@@ -267,7 +276,10 @@ void Navigation::Run() {
   // Eventually, you will have to set the control values to issue drive commands:
   printf("flag value: %f", FLAGS_cp1_distance);
   drive_msg_.curvature = 0;//produced_curvature;
-  drive_msg_.velocity = GetVelocity(FLAGS_cp1_distance);
+  // drive_msg_.velocity = GetVelocity(FLAGS_cp1_distance);
+  float launchVelocity = GetLaunchVelocity(FLAGS_cp1_distance);
+  printf("Launch velocity for target distance %f is %f", FLAGS_cp1_distance, launchVelocity);
+  drive_msg_.velocity = launchVelocity;
   printf("Speed: %f\n", drive_msg_.velocity);
   printf("Curvature: %f\n", drive_msg_.curvature);
   prev_velocity = drive_msg_.velocity;
@@ -282,6 +294,33 @@ void Navigation::Run() {
   drive_pub_.publish(drive_msg_);
   // float t_end = GetMonotonicTime();
   // printf("Total time for funtion run: %f\n", t_end - t_start);
+}
+
+float Navigation::GetLaunchDistError(float v, float a, float b, float c) {
+  return a * v * v + b * v + c;
+}
+
+float Navigation::GetLaunchDist(float v) {
+  float launchAngle = std::atan2(rampH, rampL);
+  float predictedDist = (v * cos(launchAngle) / G) * (v * sin(launchAngle) + sqrt(v * v * sin(launchAngle) * sin(launchAngle) + 2 * G * H));
+  float error = GetLaunchDistError(v, A, B, C);
+  return predictedDist + error;
+}
+
+float Navigation::GetLaunchVelocity(float targetDist) {
+  float bestDistanceError = __FLT_MAX__;
+  float bestVelocity = 0;
+  float v = 0;
+  while(v <= MAX_VEL) {
+    float calculatedLaunchDist = GetLaunchDist(v);
+    float error = abs(targetDist - calculatedLaunchDist);
+    if(error < bestDistanceError) {
+      bestDistanceError = error;
+      bestVelocity = v;
+    }
+    v += VEL_INCREMENT;
+  }
+  return bestVelocity;
 }
 
 // Given the distance remaining, handle time optimal control with latency adjustments and return the required velocity
