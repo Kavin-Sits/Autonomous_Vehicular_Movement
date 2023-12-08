@@ -85,7 +85,7 @@ const float rampH = 0.25;
 const float rampL = 0.66;
 const float A = 0.03843839216930989;
 const float B = -0.1350928896516126;
-const float C = -0.006448453967933254 - 0.3;
+const float C = -0.006448453967933254;
 } //namespace
 
 namespace navigation {
@@ -308,6 +308,7 @@ float Navigation::GetLaunchDist(float v) {
 }
 
 float Navigation::GetLaunchVelocity(float targetDist) {
+  targetDist += 0.3;
   float bestDistanceError = __FLT_MAX__;
   float bestVelocity = 0;
   float v = 0;
