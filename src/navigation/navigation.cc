@@ -274,11 +274,11 @@ void Navigation::Run() {
   // remaining_dist = freePathLength;
 
   // Eventually, you will have to set the control values to issue drive commands:
-  printf("flag value: %f", FLAGS_cp1_distance);
+  printf("flag value: %f\n", FLAGS_cp1_distance);
   drive_msg_.curvature = 0;//produced_curvature;
   // drive_msg_.velocity = GetVelocity(FLAGS_cp1_distance);
   float launchVelocity = GetLaunchVelocity(FLAGS_cp1_distance);
-  printf("Launch velocity for target distance %f is %f", FLAGS_cp1_distance, launchVelocity);
+  printf("Launch velocity for target distance %f is %f\n", FLAGS_cp1_distance, launchVelocity);
   drive_msg_.velocity = launchVelocity;
   printf("Speed: %f\n", drive_msg_.velocity);
   printf("Curvature: %f\n", drive_msg_.curvature);
